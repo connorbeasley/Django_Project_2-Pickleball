@@ -16,4 +16,8 @@ urlpatterns = [
     path('divisions/<int:division_id>/max-teams/', views.edit_max_teams, name='edit_max_teams'),
     path('divisions/<int:division_id>/schedule/generate/', views.generate_schedule,
          name='generate_schedule'),
+    path('games/<int:game_id>/edit/', views.edit_game, name='edit_game'),
+    path('divisions/<int:division_id>/courts/auto/', views.auto_courts, name='auto_courts'),
+    path('divisions/<int:division_id>/copy-week-one/', views.copy_week_one, name='copy_week_one'),
+    path('divisions/<int:division_id>/times/auto/', views.auto_times, name='auto_times'),
 ]

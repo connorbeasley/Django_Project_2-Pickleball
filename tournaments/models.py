@@ -13,6 +13,8 @@ class Tournament(models.Model):
     num_courts = models.PositiveIntegerField(default=4)
     ranking_method = models.CharField(max_length=10, choices=RANKING_CHOICES, default='wins')
     players_enter_scores = models.BooleanField(default=False)
+    # How long one game lasts, for every division (a division can override it)
+    game_minutes = models.PositiveIntegerField(default=30)
     # Set by the view, not the form
     join_code = models.CharField(max_length=8, unique=True)
     admins = models.ManyToManyField(User, related_name='admin_tournaments')
@@ -45,10 +47,18 @@ class Division(models.Model):
     # Total games in this division each night
     games_per_week = models.PositiveIntegerField()
     max_meetings_per_night = models.PositiveIntegerField(choices=MEETING_CHOICES, default=1)
+    # Blank means "use the tournament's game length"
+    game_minutes = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
         # For example: "Beginner Women's doubles"
         return f"{self.get_level_display()} {self.get_format_display()}"
+
+    def game_length(self):
+        # This division's own length if set, otherwise the tournament's.
+        if self.game_minutes:
+            return self.game_minutes
+        return self.tournament.game_minutes
 
 
 class Team(models.Model):

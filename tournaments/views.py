@@ -1,3 +1,5 @@
+import datetime
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -164,8 +166,12 @@ def new_team(request, division_id):
         raise Http404
 
     # Refuse when the team can't be added, and explain why.
-    if registration_closed(division):
+    # Once the schedule is built, only admins can add teams, and only until scores are entered.
+    if registration_closed(division) and not user_is_admin:
         messages.error(request, 'Registration is closed.')
+        return redirect('tournaments:division', division_id=division.id)
+    if scores_entered(division):
+        messages.error(request, 'Scores have been entered, so no more teams can be added.')
         return redirect('tournaments:division', division_id=division.id)
     if division.team_set.count() >= division.max_teams:
         # The superuser gets a chance to raise the limit instead of a dead end.
@@ -191,6 +197,9 @@ def new_team(request, division_id):
             if not user_is_admin:
                 new_team.captain = request.user
             new_team.save()
+            # A team added after the schedule was built has no games yet.
+            if registration_closed(division):
+                messages.info(request, 'Team added. Rebuild the schedule to give them games.')
             return redirect('tournaments:division', division_id=division.id)
 
     context = {'division': division, 'form': form}
@@ -255,8 +264,7 @@ def generate_schedule(request, division_id):
         if division.format == 'scramble':
             messages.error(request, 'Scramble schedules come in a later update.')
             return redirect('tournaments:division', division_id=division.id)
-        # team1_score__isnull=False means "this game has a score".
-        if division.game_set.filter(team1_score__isnull=False).exists():
+        if scores_entered(division):
             messages.error(request, "Scores have been entered, so the schedule can't be rebuilt.")
             return redirect('tournaments:division', division_id=division.id)
         teams = division.team_set.filter(dropped=False).order_by('id')
@@ -279,3 +287,114 @@ def generate_schedule(request, division_id):
                                 team1=team1, team2=team2)
         messages.success(request, f'Schedule created: {len(schedule)} games.')
     return redirect('tournaments:division', division_id=division.id)
+
+
+@login_required
+def edit_game(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    tournament = game.division.tournament
+    if not is_admin(request.user, tournament):
+        raise Http404
+
+    if request.method != 'POST':
+        # GET: show the form filled in with the current court and time
+        form = GameScheduleForm(instance=game)
+    else:
+        # POST: save the new court and time over the same game
+        form = GameScheduleForm(instance=game, data=request.POST)
+        if form.is_valid():
+            court = form.cleaned_data['court']
+            start_time = form.cleaned_data['start_time']
+            if court is not None and (court < 1 or court > tournament.num_courts):
+                form.add_error(None, f'This tournament only has {tournament.num_courts} courts.')
+            # Only check for a clash when both a court and a time are filled in.
+            elif court is not None and start_time is not None:
+                other = court_conflict(game, court, start_time)
+                if other:
+                    form.add_error(None, f'Court {court} is already used by {other.division} '
+                                         f'from {format_time(other.start_time)} in week {game.week} '
+                                         f'({other.division.game_length()} minute games).')
+            if not form.errors:
+                form.save()
+                return redirect('tournaments:division', division_id=game.division.id)
+
+    context = {'game': game, 'form': form}
+    return render(request, 'tournaments/edit_game.html', context)
+
+
+@login_required
+def auto_courts(request, division_id):
+    division = get_object_or_404(Division, id=division_id)
+    if not is_admin(request.user, division.tournament):
+        raise Http404
+    if request.method == 'POST':
+        num_courts = division.tournament.num_courts
+        for game in division.game_set.all():
+            game.court = court_for(game.game_number, num_courts)
+            game.save()
+        messages.success(request, 'Courts assigned.')
+    return redirect('tournaments:division', division_id=division.id)
+
+
+@login_required
+def copy_week_one(request, division_id):
+    division = get_object_or_404(Division, id=division_id)
+    if not is_admin(request.user, division.tournament):
+        raise Http404
+    if request.method == 'POST':
+        # Look up week 1 games by their game number, like {1: game, 2: game, ...}
+        week_one = {}
+        for game in division.game_set.filter(week=1):
+            week_one[game.game_number] = game
+        # week__gt=1 means "week greater than 1".
+        for game in division.game_set.filter(week__gt=1):
+            source = week_one.get(game.game_number)
+            if source:
+                game.court = source.court
+                game.start_time = source.start_time
+                game.save()
+        messages.success(request, 'Copied week 1 times and courts to every week.')
+    return redirect('tournaments:division', division_id=division.id)
+
+
+@login_required
+def auto_times(request, division_id):
+    division = get_object_or_404(Division, id=division_id)
+    if not is_admin(request.user, division.tournament):
+        raise Http404
+
+    if request.method != 'POST':
+        # GET: show an empty form
+        form = AutoTimesForm()
+    else:
+        # POST: fill in a court and time for every game
+        form = AutoTimesForm(data=request.POST)
+        if form.is_valid():
+            first_time = form.cleaned_data['first_time']
+            # Space the waves by this division's game length.
+            minutes = division.game_length()
+            num_courts = division.tournament.num_courts
+            games = division.game_set.all()
+            for game in games:
+                game.court = court_for(game.game_number, num_courts)
+                # Games 1-4 are wave 0, games 5-8 are wave 1, and so on (with 4 courts).
+                wave = (game.game_number - 1) // num_courts
+                # Python can't add minutes to a plain time, so attach a date, add, then take the time back.
+                start = datetime.datetime.combine(datetime.date.today(), first_time)
+                game.start_time = (start + datetime.timedelta(minutes=wave * minutes)).time()
+                game.save()
+
+            # Warn about clashes with other divisions in the same tournament.
+            clashes = 0
+            for game in games:
+                if court_conflict(game, game.court, game.start_time):
+                    clashes += 1
+            if clashes:
+                messages.warning(request, f'Times filled in, but {clashes} games share a court and '
+                                          f'time with another division. Edit those games to fix them.')
+            else:
+                messages.success(request, 'Times filled in.')
+            return redirect('tournaments:division', division_id=division.id)
+
+    context = {'division': division, 'form': form}
+    return render(request, 'tournaments/auto_times.html', context)

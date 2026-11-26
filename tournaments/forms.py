@@ -6,10 +6,11 @@ class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
         fields = ['name', 'start_date', 'num_weeks', 'num_courts', 'ranking_method',
-                  'players_enter_scores']
+                  'players_enter_scores', 'game_minutes']
         labels = {
             'num_weeks': 'Number of weeks (1 for a one-day event)',
             'num_courts': 'Number of courts',
+            'game_minutes': 'Game length in minutes (for every division)',
             'ranking_method': 'Rank teams by',
             'players_enter_scores': 'Let players enter their own scores',
         }
@@ -25,11 +26,13 @@ class AddAdminForm(forms.Form):
 class DivisionForm(forms.ModelForm):
     class Meta:
         model = Division
-        fields = ['level', 'format', 'max_teams', 'games_per_week', 'max_meetings_per_night']
+        fields = ['level', 'format', 'max_teams', 'games_per_week', 'max_meetings_per_night',
+                  'game_minutes']
         labels = {
             'max_teams': 'Max teams (or players for scramble)',
             'games_per_week': 'Games per night in this division',
             'max_meetings_per_night': 'How many times can two teams play each other in one night',
+            'game_minutes': "Game length in minutes (leave blank to use the tournament's)",
         }
 
 
@@ -50,3 +53,17 @@ class MaxTeamsForm(forms.ModelForm):
         model = Division
         fields = ['max_teams']
         labels = {'max_teams': 'Max teams'}
+
+
+class GameScheduleForm(forms.ModelForm):
+    class Meta:
+        model = Game
+        fields = ['court', 'start_time']
+        # type="time" makes the browser show a time picker
+        widgets = {'start_time': forms.TimeInput(attrs={'type': 'time'})}
+
+
+# A plain Form because the first game time isn't saved on any model.
+class AutoTimesForm(forms.Form):
+    first_time = forms.TimeField(label='First game starts at',
+                                 widget=forms.TimeInput(attrs={'type': 'time'}))

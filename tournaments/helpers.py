@@ -1,6 +1,6 @@
 import random
 import string
-from .models import Tournament
+from .models import Tournament, Game
 
 
 def is_admin(user, tournament):
@@ -74,3 +74,40 @@ def build_schedule(teams, num_weeks, games_per_week):
             games.append((week, game_number, team1, team2))
             index += 1
     return games
+
+
+def court_for(game_number, num_courts):
+    # Games 1-4 get courts 1-4, then game 5 starts over at court 1.
+    return ((game_number - 1) % num_courts) + 1
+
+
+def minutes_of_day(t):
+    # 6:15 PM -> 1095 minutes after midnight, so times are easy to compare.
+    return t.hour * 60 + t.minute
+
+
+def court_conflict(game, court, start_time):
+    # Return another game in the same tournament and week whose time on this court overlaps, or None.
+    new_start = minutes_of_day(start_time)
+    new_end = new_start + game.division.game_length()
+    # division__tournament follows the foreign keys Game -> Division -> Tournament.
+    others = Game.objects.filter(division__tournament=game.division.tournament, week=game.week,
+                                 court=court).exclude(id=game.id).exclude(start_time=None)
+    for other in others:
+        other_start = minutes_of_day(other.start_time)
+        other_end = other_start + other.division.game_length()
+        # Two games overlap when each one starts before the other one ends.
+        if new_start < other_end and other_start < new_end:
+            return other
+    return None
+
+
+def format_time(t):
+    # 18:00 -> "6:00 PM" (lstrip removes the leading zero from "06").
+    return t.strftime('%I:%M %p').lstrip('0')
+
+
+def scores_entered(division):
+    # True if any game in this division has a score.
+    # team1_score__isnull=False means "team1_score is not empty".
+    return division.game_set.filter(team1_score__isnull=False).exists()

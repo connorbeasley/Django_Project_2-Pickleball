@@ -182,7 +182,7 @@ def generate_schedule(request, division_id):
 5. A forfeit is a win for the opponent and a loss for the team that dropped out. The score is recorded as 11 to 0.
 6. Spectator mode means anyone can see schedules, scores, and standings without logging in. Refreshing the page shows new scores.
 7. Inviting people by text or email means the admin copies a join link and sends it themselves. The app does not send messages.
-8. Registration in a division closes once its schedule is built.
+8. Registration in a division closes to players once its schedule is built. Admins can still add a late team until any score is entered, then rebuild the schedule to give it games.
 9. When players are allowed to enter scores, the first score entered stands. Admins can always change it.
 10. Teams an admin adds by name have no linked user accounts (the director said she's fine typing names).
 11. A scramble is one night. Players sign up alone, every player partners every other player once, and a scramble needs a player count divisible by 4 (4, 8, 12, ...).

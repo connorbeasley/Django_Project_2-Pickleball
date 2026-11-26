@@ -20,9 +20,11 @@ The director shares a code or link. Players who join can create a team in a divi
 - Raise `Http404` if the user is neither a member nor an admin.
 - Refuse with an error message and redirect to the division page if:
   - the division already has `max_teams` teams, or (for the site superuser, redirect instead to a page to raise max teams, then on to the new team form; see "Raise max teams" below)
-  - the division already has games (registration is closed), or
+  - the division already has games (registration is closed) and the user is not an admin, or
+  - any game in the division has a score ("Scores have been entered, so no more teams can be added."). Use a helper `scores_entered(division)` in `helpers.py` (also used by spec 05's rebuild check), or
   - the user is not an admin and is already the captain or partner of a team in this division.
 - On a valid POST: `commit=False`, set `team.division`. If the user is an admin, leave `captain` empty (the admin is typing in someone else's team). Otherwise set `captain = request.user`. Save and redirect to the division page.
+- If the division already had a schedule, add the message "Team added. Rebuild the schedule to give them games." (Admins can add late teams until scores are entered, then rebuild.)
 
 ### Join a team (`teams/<int:team_id>/join/`, `join_team`) - login required, member only, POST button
 - Only when the team has no `partner`, the user is a member, the user isn't already on a team in this division, and registration isn't closed. Otherwise show an error message.
@@ -53,3 +55,4 @@ In the Teams section, show each team as: name, then captain and partner username
 - As user E who never joined, visit the new team URL directly: 404.
 - As the superuser, "Add a team" on a full division goes to a page to raise max teams. Entering the current team count shows an error. Raising it saves and opens the add team form. The tournament page then shows the new count, like "3 of 3 teams".
 - As a tournament admin who is not the superuser, a full division just says "This division is full.", and the raise max teams URL gives a 404.
+- After the schedule is built: a player gets "Registration is closed.", but an admin can still add a team and sees "Team added. Rebuild the schedule to give them games." After any score is entered, the admin gets "Scores have been entered, so no more teams can be added."
