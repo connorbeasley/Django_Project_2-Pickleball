@@ -1,15 +1,16 @@
 # 02 - Create and view tournaments, add admins
 
 ## Goal
-A logged-in user can create a tournament and becomes its admin. Anyone can browse tournaments. Admins can add other admins.
+A staff user (`is_staff`, set in /admin) can create a tournament and becomes its admin. Anyone can browse tournaments. Admins can add other admins.
 
 ## Pages
 
 ### Home (`''`, `index`) - public
 - Update the existing home page to list every tournament, newest first, each linking to its detail page. If none: "No tournaments yet."
-- If logged in, show links: "Create a tournament" and "Join with a code" (the join page comes in spec 04, so add that link in spec 04, not now).
+- If the user is staff, show a "Create a tournament" link. If logged in, also show "Join with a code" (the join page comes in spec 04, so add that link in spec 04, not now).
 
-### New tournament (`tournaments/new/`, `new_tournament`) - login required
+### New tournament (`tournaments/new/`, `new_tournament`) - staff only
+- `@login_required`, then `raise Http404` if `request.user.is_staff` is False.
 - `TournamentForm` (ModelForm) with fields: `name`, `start_date`, `num_weeks`, `num_courts`, `ranking_method`, `players_enter_scores`.
 - In the form's `Meta`, set `widgets = {'start_date': forms.DateInput(attrs={'type': 'date'})}` so the browser shows a date picker (see Pattern 4 in `CLAUDE.md`).
 - Labels: "Number of weeks (1 for a one-day event)", "Number of courts", "Rank teams by", "Let players enter their own scores".
@@ -31,8 +32,9 @@ If `is_admin(request.user, tournament)`, also show:
 
 ## Acceptance tests
 - Logged out: home lists tournaments, no "Create" link. Visiting `/tournaments/new/` sends me to login.
-- Logged in as user A: create "Tuesday Night League", 4 weeks, 4 courts, ranked by wins. I land on its page and see the join code and "Add an admin".
+- Logged in as user A (staff): create "Tuesday Night League", 4 weeks, 4 courts, ranked by wins. I land on its page and see the join code and "Add an admin".
 - Log out: the tournament page still loads (spectator), but no join code or admin link shows.
 - Register user B. As A, add B as an admin. B now sees the join code on that page.
 - As A, try adding username "nobody": error shows.
 - As user C (not an admin), go to `/tournaments/1/admins/add/` directly: 404.
+- As a non-staff user: no "Create a tournament" link, and `/tournaments/new/` gives a 404.

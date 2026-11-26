@@ -6,8 +6,9 @@ Prove everything works on the live site, load demo data the grader can look at, 
 ## Steps
 1. Run `python manage.py check` and fix anything it reports.
 2. Walk through this scenario locally. It matches the director's real league (4 weeks, 4 teams, max 12 games). Report anything that breaks, and fix it only after I agree.
-   - Admin creates "Waco Regional Tuesday League": 4 weeks, 4 courts, ranked by wins, players can't enter scores.
-   - Adds a second admin.
+   - A staff user (Staff status checked in /admin) creates "Waco Regional Tuesday League": 4 weeks, 4 courts, ranked by wins, players can't enter scores. They become its admin.
+   - Adds a second admin (a regular, non-staff user).
+   - A regular player sees no "Create a tournament" link.
    - Adds "Beginner Women's doubles": 4 teams max, 3 games per night, once.
    - Two players join with the code and make one team together. The admin adds three teams by name.
    - Build schedule (12 games), auto-assign courts, set week 1 times, copy week 1.
@@ -20,7 +21,7 @@ Prove everything works on the live site, load demo data the grader can look at, 
 Write it in plain language, as me (a college student). Sections:
 - What this is (two sentences).
 - Live URL (I'll paste it).
-- Demo logins: admin, player, spectator (no login needed).
+- Demo logins: admin (a staff user, so it can create tournaments), player, spectator (no login needed).
 - "What the director asked for" table: her request in one column, what the app does in the other. Use her requests from `CLAUDE.md` and the specs.
 - Assumptions I made (copy from `CLAUDE.md`, reworded for a reader).
 - Not built and why (copy the out-of-scope list, with one short reason each).
@@ -31,3 +32,4 @@ No em dashes. No buzzwords.
 ## Acceptance tests
 - Every step above works on the live URL.
 - A logged-out visitor can reach the demo division from the home page in two clicks.
+- On the live site, the demo player login has no "Create a tournament" link, and the demo admin login does.

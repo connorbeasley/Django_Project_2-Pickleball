@@ -2,4 +2,17 @@
 {% block content %}
   <h1>Waco Regional Pickleball</h1>
   <p>Set up leagues and tournaments, build schedules, and follow scores and standings.</p>
+
+  {% if user.is_staff %}
+    <p><a href="{% url 'tournaments:new_tournament' %}">Create a tournament</a></p>
+  {% endif %}
+
+  <h2>Tournaments</h2>
+  <ul>
+    {% for tournament in tournaments %}
+      <li><a href="{% url 'tournaments:tournament' tournament.id %}">{{ tournament.name }}</a></li>
+    {% empty %}
+      <li>No tournaments yet.</li>
+    {% endfor %}
+  </ul>
 {% endblock content %}

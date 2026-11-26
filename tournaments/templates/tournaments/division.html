@@ -1,0 +1,25 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <h1>{{ division }}</h1>
+  <p><a href="{% url 'tournaments:tournament' division.tournament.id %}">{{ division.tournament }}</a></p>
+  <ul>
+    <li>Max teams: {{ division.max_teams }}</li>
+    <li>Games per night: {{ division.games_per_week }}</li>
+    <li>Max meetings per night: {{ division.get_max_meetings_per_night_display }}</li>
+  </ul>
+
+  <h2>Teams</h2>
+  <ul>
+    {% for team in teams %}
+      <li>{{ team.name }}</li>
+    {% empty %}
+      <li>No teams yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Schedule</h2>
+  <p>Coming soon.</p>
+
+  <h2>Standings</h2>
+  <p>Coming soon.</p>
+{% endblock content %}

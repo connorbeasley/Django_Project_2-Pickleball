@@ -31,6 +31,7 @@ I learned Django in class by building a different project (a "Learning Log" jour
 
 ## Permissions
 - A "tournament admin" is any user in `tournament.admins`. Use one helper, `is_admin(user, tournament)` in `helpers.py`, everywhere.
+- A "staff user" is a user with `is_staff` checked in /admin (the director and her helpers). Only staff can create tournaments. Co-admins added with "Add an admin" do not need to be staff.
 - A "member" is any user in `tournament.members` (they entered the join code). Use `is_member(user, tournament)` in `helpers.py`.
 - Admin-only views: `@login_required`, then `raise Http404` if `is_admin` is False. See Pattern 2.
 - Public views (spectator mode) have no decorator: home, tournament detail, division detail (teams, schedule, standings).

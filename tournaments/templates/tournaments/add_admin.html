@@ -1,0 +1,10 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <p><a href="{% url 'tournaments:tournament' tournament.id %}">{{ tournament }}</a></p>
+  <p>Add an admin:</p>
+  <form action="{% url 'tournaments:add_admin' tournament.id %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Add admin</button>
+  </form>
+{% endblock content %}

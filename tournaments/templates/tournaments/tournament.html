@@ -1,0 +1,36 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <h1>{{ tournament.name }}</h1>
+  <ul>
+    <li>Starts: {{ tournament.start_date }}</li>
+    <li>Weeks: {{ tournament.num_weeks }}</li>
+    <li>Courts: {{ tournament.num_courts }}</li>
+    <li>Ranked by: {{ tournament.get_ranking_method_display }}</li>
+    <li>Players enter scores: {% if tournament.players_enter_scores %}Yes{% else %}No{% endif %}</li>
+  </ul>
+
+  {% if user_is_admin %}
+    <p>Join code: {{ tournament.join_code }}</p>
+    <p><a href="{% url 'tournaments:add_admin' tournament.id %}">Add an admin</a></p>
+    <p><a href="{% url 'tournaments:new_division' tournament.id %}">Add a division</a></p>
+  {% endif %}
+
+  <h2>Divisions</h2>
+  <ul>
+    {% for division in divisions %}
+      <li>
+        <a href="{% url 'tournaments:division' division.id %}">{{ division }}</a>
+        ({{ division.team_set.count }} of {{ division.max_teams }} teams)
+      </li>
+    {% empty %}
+      <li>No divisions yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Admins</h2>
+  <ul>
+    {% for admin in admins %}
+      <li>{{ admin.username }}</li>
+    {% endfor %}
+  </ul>
+{% endblock content %}
