@@ -1,0 +1,23 @@
+<p>
+  <a href="{% url 'tournaments:index' %}">Home</a> -
+  {% if user.is_authenticated %}
+    Hello, {{ user.username }}.
+  {% else %}
+    <a href="{% url 'users:register' %}">Register</a> -
+    <a href="{% url 'users:login' %}">Log in</a>
+  {% endif %}
+</p>
+
+{% if user.is_authenticated %}
+  <!-- Django 4.2 logs out with a POST, so Log out is a small form. -->
+  <form action="{% url 'users:logout' %}" method="post">
+    {% csrf_token %}
+    <button name="submit">Log out</button>
+  </form>
+{% endif %}
+
+{% for message in messages %}
+  <p>{{ message }}</p>
+{% endfor %}
+
+{% block content %}{% endblock content %}
