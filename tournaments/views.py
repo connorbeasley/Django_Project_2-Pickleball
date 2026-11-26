@@ -119,6 +119,7 @@ def division(request, division_id):
         'user_is_member': is_member(request.user, tournament),
         'user_team': user_team_in_division(request.user, division),
         'closed': registration_closed(division),
+        'games': division.game_set.order_by('week', 'game_number'),
     }
     return render(request, 'tournaments/division.html', context)
 
@@ -243,3 +244,38 @@ def edit_max_teams(request, division_id):
 
     context = {'division': division, 'form': form, 'team_count': team_count}
     return render(request, 'tournaments/edit_max_teams.html', context)
+
+
+@login_required
+def generate_schedule(request, division_id):
+    division = get_object_or_404(Division, id=division_id)
+    if not is_admin(request.user, division.tournament):
+        raise Http404
+    if request.method == 'POST':
+        if division.format == 'scramble':
+            messages.error(request, 'Scramble schedules come in a later update.')
+            return redirect('tournaments:division', division_id=division.id)
+        # team1_score__isnull=False means "this game has a score".
+        if division.game_set.filter(team1_score__isnull=False).exists():
+            messages.error(request, "Scores have been entered, so the schedule can't be rebuilt.")
+            return redirect('tournaments:division', division_id=division.id)
+        teams = division.team_set.filter(dropped=False).order_by('id')
+        n = teams.count()
+        if n < 2:
+            messages.error(request, 'Add at least 2 teams first.')
+            return redirect('tournaments:division', division_id=division.id)
+        # Each pair can meet at most max_meetings_per_night times in one night.
+        pairs = n * (n - 1) // 2
+        max_games = pairs * division.max_meetings_per_night
+        if division.games_per_week > max_games:
+            messages.error(request, f'With {n} teams, each night can have at most {max_games} games.')
+            return redirect('tournaments:division', division_id=division.id)
+
+        # Start fresh, then save one Game for each scheduled matchup.
+        division.game_set.all().delete()
+        schedule = build_schedule(teams, division.tournament.num_weeks, division.games_per_week)
+        for week, game_number, team1, team2 in schedule:
+            Game.objects.create(division=division, week=week, game_number=game_number,
+                                team1=team1, team2=team2)
+        messages.success(request, f'Schedule created: {len(schedule)} games.')
+    return redirect('tournaments:division', division_id=division.id)

@@ -36,3 +36,41 @@ def user_team_in_division(user, division):
 def registration_closed(division):
     # Registration closes once the schedule has games.
     return division.game_set.exists()
+
+
+def round_robin_rounds(teams):
+    # Copy the list so we don't change the caller's list.
+    items = list(teams)
+    # With an odd count, add None as a "bye". Whoever is paired with None sits out that round.
+    if len(items) % 2 == 1:
+        items.append(None)
+    n = len(items)
+    rounds = []
+    for r in range(n - 1):
+        # Pair the list from both ends: first with last, second with second-to-last, ...
+        round_pairs = []
+        for i in range(n // 2):
+            pair = (items[i], items[n - 1 - i])
+            # Skip the bye pair.
+            if None not in pair:
+                round_pairs.append(pair)
+        rounds.append(round_pairs)
+        # Rotate: keep the first item fixed, move the last item to position 1.
+        items = [items[0]] + [items[-1]] + items[1:-1]
+    return rounds
+
+
+def build_schedule(teams, num_weeks, games_per_week):
+    # Flatten the rounds into one long list of matchups, in order.
+    matchups = []
+    for round_pairs in round_robin_rounds(teams):
+        matchups.extend(round_pairs)
+    games = []
+    index = 0
+    for week in range(1, num_weeks + 1):
+        for game_number in range(1, games_per_week + 1):
+            # % wraps back to the start of the list when we run out of matchups.
+            team1, team2 = matchups[index % len(matchups)]
+            games.append((week, game_number, team1, team2))
+            index += 1
+    return games

@@ -14,4 +14,6 @@ urlpatterns = [
     path('divisions/<int:division_id>/teams/new/', views.new_team, name='new_team'),
     path('teams/<int:team_id>/join/', views.join_team, name='join_team'),
     path('divisions/<int:division_id>/max-teams/', views.edit_max_teams, name='edit_max_teams'),
+    path('divisions/<int:division_id>/schedule/generate/', views.generate_schedule,
+         name='generate_schedule'),
 ]

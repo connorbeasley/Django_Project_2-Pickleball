@@ -40,7 +40,35 @@
   </ul>
 
   <h2>Schedule</h2>
-  <p>Coming soon.</p>
+  {% if user_is_admin %}
+    <form action="{% url 'tournaments:generate_schedule' division.id %}" method="post">
+      {% csrf_token %}
+      <button name="submit">{% if games %}Rebuild schedule{% else %}Build schedule{% endif %}</button>
+    </form>
+  {% endif %}
+
+  {% if games %}
+    <table>
+      <tr>
+        <th>Game #</th><th>Time</th><th>Court</th><th>Team 1</th><th>Score</th><th>Team 2</th>
+      </tr>
+      {% for game in games %}
+        {% ifchanged game.week %}
+          <tr><th colspan="6">Week {{ game.week }}</th></tr>
+        {% endifchanged %}
+        <tr>
+          <td>{{ game.game_number }}</td>
+          <td>{% if game.start_time %}{{ game.start_time }}{% else %}TBD{% endif %}</td>
+          <td>{% if game.court %}{{ game.court }}{% else %}TBD{% endif %}</td>
+          <td>{{ game.team1 }}</td>
+          <td>{% if game.team1_score is not None %}{{ game.team1_score }} - {{ game.team2_score }}{% else %}-{% endif %}</td>
+          <td>{{ game.team2 }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p>No schedule yet.</p>
+  {% endif %}
 
   <h2>Standings</h2>
   <p>Coming soon.</p>
