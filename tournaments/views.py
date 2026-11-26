@@ -3,10 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import Http404
+from django.urls import reverse
 
 from .models import *
 from .forms import *
-from .helpers import is_admin, make_join_code
+from .helpers import *
 
 
 def index(request):
@@ -48,9 +49,11 @@ def tournament(request, tournament_id):
     admins = tournament.admins.order_by('username')
     # Only admins see the join code and the "Add an admin" link.
     user_is_admin = is_admin(request.user, tournament)
-    # join link added in spec 04
+    # The full link (with http://...) that the director can text or email.
+    join_link = request.build_absolute_uri(
+        reverse('tournaments:join_tournament', args=[tournament.join_code]))
     context = {'tournament': tournament, 'divisions': divisions, 'admins': admins,
-               'user_is_admin': user_is_admin}
+               'user_is_admin': user_is_admin, 'join_link': join_link}
     return render(request, 'tournaments/tournament.html', context)
 
 
@@ -108,5 +111,135 @@ def division(request, division_id):
     # get_object_or_404 shows a "not found" page for a bad id instead of crashing.
     division = get_object_or_404(Division, id=division_id)
     teams = division.team_set.order_by('name')
-    context = {'division': division, 'teams': teams}
+    tournament = division.tournament
+    context = {
+        'division': division,
+        'teams': teams,
+        'user_is_admin': is_admin(request.user, tournament),
+        'user_is_member': is_member(request.user, tournament),
+        'user_team': user_team_in_division(request.user, division),
+        'closed': registration_closed(division),
+    }
     return render(request, 'tournaments/division.html', context)
+
+
+@login_required
+def join_with_code(request):
+    if request.method != 'POST':
+        # GET: show an empty form
+        form = JoinCodeForm()
+    else:
+        # POST: look up the code they typed
+        form = JoinCodeForm(data=request.POST)
+        if form.is_valid():
+            # Codes are stored in uppercase, so "abc123" still works.
+            code = form.cleaned_data['code'].upper()
+            tournament = Tournament.objects.filter(join_code=code).first()
+            if tournament is None:
+                form.add_error('code', "That code doesn't match any tournament.")
+            else:
+                tournament.members.add(request.user)
+                messages.success(request, f'You joined {tournament.name}.')
+                return redirect('tournaments:tournament', tournament_id=tournament.id)
+
+    context = {'form': form}
+    return render(request, 'tournaments/join_with_code.html', context)
+
+
+@login_required
+def join_tournament(request, code):
+    # This is the link the director texts or emails.
+    tournament = get_object_or_404(Tournament, join_code=code.upper())
+    tournament.members.add(request.user)
+    messages.success(request, f'You joined {tournament.name}.')
+    return redirect('tournaments:tournament', tournament_id=tournament.id)
+
+
+@login_required
+def new_team(request, division_id):
+    division = get_object_or_404(Division, id=division_id)
+    user_is_admin = is_admin(request.user, division.tournament)
+    if not user_is_admin and not is_member(request.user, division.tournament):
+        raise Http404
+
+    # Refuse when the team can't be added, and explain why.
+    if registration_closed(division):
+        messages.error(request, 'Registration is closed.')
+        return redirect('tournaments:division', division_id=division.id)
+    if division.team_set.count() >= division.max_teams:
+        # The superuser gets a chance to raise the limit instead of a dead end.
+        if request.user.is_superuser:
+            messages.info(request, 'This division is full. Raise max teams to add another team.')
+            return redirect('tournaments:edit_max_teams', division_id=division.id)
+        messages.error(request, 'This division is full.')
+        return redirect('tournaments:division', division_id=division.id)
+    if not user_is_admin and user_team_in_division(request.user, division):
+        messages.error(request, "You're already on a team in this division.")
+        return redirect('tournaments:division', division_id=division.id)
+
+    if request.method != 'POST':
+        # GET: show an empty form
+        form = TeamForm()
+    else:
+        # POST: save what the user typed
+        form = TeamForm(data=request.POST)
+        if form.is_valid():
+            new_team = form.save(commit=False)
+            new_team.division = division
+            # An admin is typing in someone else's team, so only players become captain.
+            if not user_is_admin:
+                new_team.captain = request.user
+            new_team.save()
+            return redirect('tournaments:division', division_id=division.id)
+
+    context = {'division': division, 'form': form}
+    return render(request, 'tournaments/new_team.html', context)
+
+
+@login_required
+def join_team(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    division = team.division
+    if request.method == 'POST':
+        if not is_member(request.user, division.tournament):
+            messages.error(request, 'Join the tournament first.')
+        elif registration_closed(division):
+            messages.error(request, 'Registration is closed.')
+        elif user_team_in_division(request.user, division):
+            messages.error(request, "You're already on a team in this division.")
+        # Only a team with a captain and no partner is looking for a partner.
+        elif team.captain is None or team.partner is not None:
+            messages.error(request, "This team isn't looking for a partner.")
+        else:
+            team.partner = request.user
+            team.save()
+            messages.success(request, f'You joined {team.name}.')
+    return redirect('tournaments:division', division_id=division.id)
+
+
+@login_required
+def edit_max_teams(request, division_id):
+    division = get_object_or_404(Division, id=division_id)
+    # Only the site superuser can raise a division's team limit.
+    if not request.user.is_superuser:
+        raise Http404
+    team_count = division.team_set.count()
+
+    if request.method != 'POST':
+        # GET: show the form filled in with the current max
+        form = MaxTeamsForm(instance=division)
+    else:
+        # POST: save the new max over the same division
+        form = MaxTeamsForm(instance=division, data=request.POST)
+        if form.is_valid():
+            if form.cleaned_data['max_teams'] <= team_count:
+                form.add_error('max_teams',
+                               f'Set it higher than the {team_count} teams already signed up.')
+            else:
+                form.save()
+                messages.success(request, f'Max teams is now {division.max_teams}.')
+                # Go straight to adding the team they wanted to add.
+                return redirect('tournaments:new_team', division_id=division.id)
+
+    context = {'division': division, 'form': form, 'team_count': team_count}
+    return render(request, 'tournaments/edit_max_teams.html', context)

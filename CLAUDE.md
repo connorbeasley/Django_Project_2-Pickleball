@@ -30,7 +30,7 @@ I learned Django in class by building a different project (a "Learning Log" jour
 - User-facing text should be short and plain. No em dashes.
 
 ## Permissions
-- A "tournament admin" is any user in `tournament.admins`. Use one helper, `is_admin(user, tournament)` in `helpers.py`, everywhere.
+- A "tournament admin" is any user in `tournament.admins`, plus the site superuser (who can manage every tournament). Use one helper, `is_admin(user, tournament)` in `helpers.py`, everywhere.
 - A "staff user" is a user with `is_staff` checked in /admin (the director and her helpers). Only staff can create tournaments. Co-admins added with "Add an admin" do not need to be staff.
 - A "member" is any user in `tournament.members` (they entered the join code). Use `is_member(user, tournament)` in `helpers.py`.
 - Admin-only views: `@login_required`, then `raise Http404` if `is_admin` is False. See Pattern 2.
@@ -193,6 +193,6 @@ def generate_schedule(request, division_id):
 - Live score updates without refreshing the page
 - Playoff brackets
 - Checking a player's gender for men's or women's doubles
-- Editing tournament or division settings after creation (fix mistakes in /admin)
+- Editing tournament or division settings after creation (fix mistakes in /admin). One exception: the superuser can raise a full division's max teams (spec 04).
 - Dropouts in scramble divisions
 - Showing calendar dates for each week

@@ -1,0 +1,10 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <p><a href="{% url 'tournaments:division' division.id %}">{{ division }}</a></p>
+  <p>Add a team:</p>
+  <form action="{% url 'tournaments:new_team' division.id %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Save team</button>
+  </form>
+{% endblock content %}

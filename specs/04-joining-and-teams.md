@@ -19,7 +19,7 @@ The director shares a code or link. Players who join can create a team in a divi
 - `TeamForm` (ModelForm) with one field: `name`. Label: "Team name".
 - Raise `Http404` if the user is neither a member nor an admin.
 - Refuse with an error message and redirect to the division page if:
-  - the division already has `max_teams` teams, or
+  - the division already has `max_teams` teams, or (for the site superuser, redirect instead to a page to raise max teams, then on to the new team form; see "Raise max teams" below)
   - the division already has games (registration is closed), or
   - the user is not an admin and is already the captain or partner of a team in this division.
 - On a valid POST: `commit=False`, set `team.division`. If the user is an admin, leave `captain` empty (the admin is typing in someone else's team). Otherwise set `captain = request.user`. Save and redirect to the division page.
@@ -27,6 +27,13 @@ The director shares a code or link. Players who join can create a team in a divi
 ### Join a team (`teams/<int:team_id>/join/`, `join_team`) - login required, member only, POST button
 - Only when the team has no `partner`, the user is a member, the user isn't already on a team in this division, and registration isn't closed. Otherwise show an error message.
 - Set `team.partner = request.user`, save, success message, redirect to the division page.
+
+### Raise max teams (`divisions/<int:division_id>/max-teams/`, `edit_max_teams`) - superuser only
+- `@login_required`, then `raise Http404` if the user is not `is_superuser`.
+- `MaxTeamsForm` (ModelForm) with one field, `max_teams`, loaded with `instance=division` (Pattern 3).
+- Show "This division has X of Y teams." above the form.
+- The new number must be higher than the current team count, otherwise show "Set it higher than the X teams already signed up."
+- On save: success message "Max teams is now N.", redirect to the new team form.
 
 ### Division detail (update)
 In the Teams section, show each team as: name, then captain and partner usernames (or "Added by admin" when both are empty, or "Looking for a partner" when only the captain is set).
@@ -44,3 +51,5 @@ In the Teams section, show each team as: name, then captain and partner username
 - As the admin, add team "Smith / Jones". It shows "Added by admin".
 - Fill the division to `max_teams`. "Create a team" now gives an error.
 - As user E who never joined, visit the new team URL directly: 404.
+- As the superuser, "Add a team" on a full division goes to a page to raise max teams. Entering the current team count shows an error. Raising it saves and opens the add team form. The tournament page then shows the new count, like "3 of 3 teams".
+- As a tournament admin who is not the superuser, a full division just says "This division is full.", and the raise max teams URL gives a 404.

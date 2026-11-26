@@ -24,7 +24,7 @@
         <!--include a hidden form element, 'next'; the value argument 
             tells Django where to redirect the user after they’ve logged in successfully.-->
         <input type="hidden" name="next"
-        value="{% url 'tournaments:index' %}" />
+        value="{% if request.GET.next %}{{ request.GET.next }}{% else %}{% url 'tournaments:index' %}{% endif %}" />
     </form>
 
 {% endblock content %}

@@ -1,0 +1,9 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <p>Type the join code you got from the director:</p>
+  <form action="{% url 'tournaments:join_with_code' %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Join</button>
+  </form>
+{% endblock content %}

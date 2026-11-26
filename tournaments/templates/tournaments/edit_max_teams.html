@@ -1,0 +1,10 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <p><a href="{% url 'tournaments:division' division.id %}">{{ division }}</a></p>
+  <p>This division has {{ team_count }} of {{ division.max_teams }} teams.</p>
+  <form action="{% url 'tournaments:edit_max_teams' division.id %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Save max teams</button>
+  </form>
+{% endblock content %}

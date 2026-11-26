@@ -9,9 +9,31 @@
   </ul>
 
   <h2>Teams</h2>
+  {% if closed %}
+    <p>Registration is closed.</p>
+  {% endif %}
+  {% if user_is_admin %}
+    <p><a href="{% url 'tournaments:new_team' division.id %}">Add a team</a></p>
+  {% elif user_is_member and not closed %}
+    <p><a href="{% url 'tournaments:new_team' division.id %}">Create a team</a></p>
+  {% endif %}
   <ul>
     {% for team in teams %}
-      <li>{{ team.name }}</li>
+      <li>
+        {% if team.captain and team.partner %}
+          {{ team.name }}: {{ team.captain.username }} and {{ team.partner.username }}
+        {% elif team.captain %}
+          {{ team.name }}: {{ team.captain.username }} (Looking for a partner)
+          {% if user_is_member and not user_team and not closed %}
+            <form action="{% url 'tournaments:join_team' team.id %}" method="post">
+              {% csrf_token %}
+              <button name="submit">Join as partner</button>
+            </form>
+          {% endif %}
+        {% else %}
+          {{ team.name }} (Added by admin)
+        {% endif %}
+      </li>
     {% empty %}
       <li>No teams yet.</li>
     {% endfor %}

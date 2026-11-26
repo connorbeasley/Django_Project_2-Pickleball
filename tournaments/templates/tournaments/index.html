@@ -6,6 +6,9 @@
   {% if user.is_staff %}
     <p><a href="{% url 'tournaments:new_tournament' %}">Create a tournament</a></p>
   {% endif %}
+  {% if user.is_authenticated %}
+    <p><a href="{% url 'tournaments:join_with_code' %}">Join with a code</a></p>
+  {% endif %}
 
   <h2>Tournaments</h2>
   <ul>

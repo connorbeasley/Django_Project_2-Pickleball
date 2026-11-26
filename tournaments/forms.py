@@ -31,3 +31,22 @@ class DivisionForm(forms.ModelForm):
             'games_per_week': 'Games per night in this division',
             'max_meetings_per_night': 'How many times can two teams play each other in one night',
         }
+
+
+# A plain Form because typing a code doesn't save a model.
+class JoinCodeForm(forms.Form):
+    code = forms.CharField(max_length=8)
+
+
+class TeamForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        fields = ['name']
+        labels = {'name': 'Team name'}
+
+
+class MaxTeamsForm(forms.ModelForm):
+    class Meta:
+        model = Division
+        fields = ['max_teams']
+        labels = {'max_teams': 'Max teams'}

@@ -11,6 +11,7 @@
 
   {% if user_is_admin %}
     <p>Join code: {{ tournament.join_code }}</p>
+    <p>Join link: {{ join_link }}</p>
     <p><a href="{% url 'tournaments:add_admin' tournament.id %}">Add an admin</a></p>
     <p><a href="{% url 'tournaments:new_division' tournament.id %}">Add a division</a></p>
   {% endif %}
