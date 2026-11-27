@@ -125,3 +125,42 @@ def can_enter_score(user, game):
         return False
     players = [game.team1.captain, game.team1.partner, game.team2.captain, game.team2.partner]
     return user in players
+
+
+def standings(division):
+    # One row per team (dropped teams too), keyed by team id while we count.
+    rows = {}
+    for team in division.team_set.all():
+        rows[team.id] = {'team': team, 'played': 0, 'wins': 0, 'losses': 0, 'points': 0,
+                         'allowed': 0}
+
+    # Only games with both scores count.
+    games = division.game_set.filter(team1_score__isnull=False, team2_score__isnull=False)
+    for game in games:
+        row1 = rows[game.team1.id]
+        row2 = rows[game.team2.id]
+        row1['played'] += 1
+        row2['played'] += 1
+        row1['points'] += game.team1_score
+        row2['points'] += game.team2_score
+        # Points allowed are the other team's points.
+        row1['allowed'] += game.team2_score
+        row2['allowed'] += game.team1_score
+        winner = game.winner()
+        if winner == game.team1:
+            row1['wins'] += 1
+            row2['losses'] += 1
+        elif winner == game.team2:
+            row2['wins'] += 1
+            row1['losses'] += 1
+
+    rows = list(rows.values())
+    # Point differential (+/-): points scored minus points allowed. The last tie-breaker.
+    for row in rows:
+        row['diff'] = row['points'] - row['allowed']
+
+    if division.tournament.ranking_method == 'points':
+        # Sort by points, then wins, then +/-. reverse=True puts the biggest first.
+        return sorted(rows, key=lambda row: (row['points'], row['wins'], row['diff']), reverse=True)
+    # Sort by wins, then points, then +/-. reverse=True puts the biggest first.
+    return sorted(rows, key=lambda row: (row['wins'], row['points'], row['diff']), reverse=True)

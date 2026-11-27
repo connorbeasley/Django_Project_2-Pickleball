@@ -126,6 +126,7 @@ def division(request, division_id):
         'user_team': user_team_in_division(request.user, division),
         'closed': registration_closed(division),
         'game_rows': game_rows,
+        'standings_rows': standings(division),
     }
     return render(request, 'tournaments/division.html', context)
 

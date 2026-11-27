@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
 
 class Tournament(models.Model):
@@ -89,6 +90,11 @@ class Game(models.Model):
 
     def __str__(self):
         return f"Week {self.week}: {self.team1} vs {self.team2}"
+
+    def clean(self):
+        # Pickleball games can't end tied, so refuse it everywhere (including /admin).
+        if self.team1_score is not None and self.team1_score == self.team2_score:
+            raise ValidationError("Scores can't be tied.")
 
     def winner(self):
         # No winner until both scores are in.
