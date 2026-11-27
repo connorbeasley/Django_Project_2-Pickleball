@@ -8,6 +8,7 @@
     <li>Ranked by: {{ tournament.get_ranking_method_display }}</li>
     <li>Players enter scores: {% if tournament.players_enter_scores %}Yes{% else %}No{% endif %}</li>
     <li>Game length: {{ tournament.game_minutes }} minutes</li>
+    <li>Games to {{ tournament.points_to_win }}{% if tournament.win_by_two %}, win by 2{% endif %}</li>
   </ul>
 
   {% if user_is_admin %}
@@ -22,7 +23,7 @@
     {% for division in divisions %}
       <li>
         <a href="{% url 'tournaments:division' division.id %}">{{ division }}</a>
-        ({{ division.team_set.count }} of {{ division.max_teams }} teams)
+        ({{ division.team_set.count }} of {{ division.max_teams }} {% if division.format == 'scramble' %}players{% else %}teams{% endif %})
       </li>
     {% empty %}
       <li>No divisions yet.</li>

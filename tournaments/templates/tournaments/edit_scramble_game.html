@@ -1,0 +1,11 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <p><a href="{% url 'tournaments:division' game.division.id %}">{{ game.division }}</a></p>
+  <p>Round {{ game.round_number }}, game {{ game.game_number }}:
+     {{ game.a1 }} and {{ game.a2 }} vs {{ game.b1 }} and {{ game.b2 }}</p>
+  <form action="{% url 'tournaments:edit_scramble_game' game.id %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Save</button>
+  </form>
+{% endblock content %}

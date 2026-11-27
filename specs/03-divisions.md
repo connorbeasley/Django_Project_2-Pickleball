@@ -6,8 +6,8 @@ Admins add divisions (for example "Beginner Women's doubles") to a tournament. A
 ## Pages
 
 ### New division (`tournaments/<int:tournament_id>/divisions/new/`, `new_division`) - admin only
-- `DivisionForm` (ModelForm) with fields: `level`, `format`, `max_teams`, `games_per_week`, `max_meetings_per_night`, `game_minutes`.
-- Labels: "Max teams (or players for scramble)", "Games per night in this division", "How many times can two teams play each other in one night", "Game length in minutes (leave blank to use the tournament's)".
+- `DivisionForm` (ModelForm) with fields: `level`, `format`, `max_teams`, `games_per_week`, `max_meetings_per_night`, `game_minutes`, `points_to_win`, `win_by_two`.
+- Labels: "Max teams (or players for scramble)", "Games per night in this division", "How many times can two teams play each other in one night", "Game length in minutes (leave blank to use the tournament's)", "Games are played to (leave blank to use the tournament's)", "Must win by 2".
 - On a valid POST: `commit=False`, set `division.tournament`, save, redirect to the tournament detail page.
 - Show the tournament name at the top of the page, linked back to the tournament page. This is exactly Pattern 2 in `CLAUDE.md`.
 

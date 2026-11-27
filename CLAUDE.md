@@ -179,7 +179,7 @@ def generate_schedule(request, division_id):
 2. Each division schedules on its own. The app makes a round-robin order of matchups and keeps cycling through it until every week has `games_per_week` games. The cycle continues from week to week, so teams rotate opponents across the league.
 3. `max_meetings_per_night` (1 or 2) caps how many times two teams can play each other in one week. The app refuses to build a schedule if `games_per_week` is more than that allows.
 4. "Copy week 1" copies start times and courts from week 1 onto the same game numbers in every later week. It does not change matchups.
-5. A forfeit is a win for the opponent and a loss for the team that dropped out. The score is recorded as 11 to 0.
+5. A forfeit is a win for the opponent and a loss for the team that dropped out. The score is recorded as the division's points to win to 0 (usually 11 to 0).
 6. Spectator mode means anyone can see schedules, scores, and standings without logging in. Refreshing the page shows new scores.
 7. Inviting people by text or email means the admin copies a join link and sends it themselves. The app does not send messages.
 8. Registration in a division closes to players once its schedule is built. Admins can still add a late team until any score is entered, then rebuild the schedule to give it games.

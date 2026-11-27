@@ -16,6 +16,8 @@ Import `User` from `django.contrib.auth.models`. Every model gets a `__str__` me
 | `ranking_method` | CharField(max_length=10) | choices: `('wins', 'Wins and losses')`, `('points', 'Total points')`. Default `'wins'` |
 | `players_enter_scores` | BooleanField | default False. Turn on for big tournaments |
 | `game_minutes` | PositiveIntegerField | default 30. How long one game lasts, for every division (added during spec 06) |
+| `points_to_win` | PositiveIntegerField | default 11. What games are played to (added after spec 10) |
+| `win_by_two` | BooleanField | default True. Winner must lead by 2 (added after spec 10) |
 | `join_code` | CharField(max_length=8, unique=True) | Set by the view, not the form |
 | `admins` | ManyToManyField(User) | `related_name='admin_tournaments'` |
 | `members` | ManyToManyField(User) | `related_name='joined_tournaments'`, `blank=True` |
@@ -33,10 +35,13 @@ Import `User` from `django.contrib.auth.models`. Every model gets a `__str__` me
 | `games_per_week` | PositiveIntegerField | Total games in this division each night |
 | `max_meetings_per_night` | PositiveIntegerField | choices: `(1, 'Once')`, `(2, 'Twice')`. Default 1 |
 | `game_minutes` | PositiveIntegerField | `null=True, blank=True`. Blank means use the tournament's length (added during spec 06) |
+| `points_to_win` | PositiveIntegerField | `null=True, blank=True`. Blank means use the tournament's (added after spec 10) |
+| `win_by_two` | CharField(max_length=3) | `blank=True`, choices: `('', "Use the tournament's setting")`, `('yes', 'Yes')`, `('no', 'No')` (added after spec 10) |
 
 `__str__` returns something like `"Beginner Women's doubles"` using `get_level_display()` and `get_format_display()`.
 
 Add a method `game_length(self)` that returns `game_minutes` if set, otherwise `self.tournament.game_minutes`.
+Add `target_points(self)` (same idea for `points_to_win`) and `needs_win_by_two(self)` ('yes' -> True, 'no' -> False, blank -> the tournament's `win_by_two`).
 
 ### Team
 | Field | Type | Notes |

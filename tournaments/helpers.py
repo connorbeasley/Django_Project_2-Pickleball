@@ -1,6 +1,6 @@
 import random
 import string
-from .models import Tournament, Game
+from .models import Tournament, Game, ScrambleGame
 
 
 def is_admin(user, tournament):
@@ -34,8 +34,8 @@ def user_team_in_division(user, division):
 
 
 def registration_closed(division):
-    # Registration closes once the schedule has games.
-    return division.game_set.exists()
+    # Registration closes once the schedule has games (doubles or scramble).
+    return division.game_set.exists() or division.scramblegame_set.exists()
 
 
 def round_robin_rounds(teams):
@@ -108,9 +108,11 @@ def format_time(t):
 
 
 def scores_entered(division):
-    # True if any game in this division has a score.
+    # True if any game in this division (doubles or scramble) has a score.
     # team1_score__isnull=False means "team1_score is not empty".
-    return division.game_set.filter(team1_score__isnull=False).exists()
+    if division.game_set.filter(team1_score__isnull=False).exists():
+        return True
+    return division.scramblegame_set.filter(a_score__isnull=False).exists()
 
 
 def can_enter_score(user, game):
@@ -167,19 +169,126 @@ def standings(division):
 
 
 def forfeit_remaining_games(team):
-    # Every unplayed game for this team becomes an 11 - 0 win for the opponent.
+    # Every unplayed game for this team becomes a win for the opponent, by the division's
+    # points to win to 0 (for example 11 - 0).
+    target = team.division.target_points()
     changed = 0
     # Two queries keep it readable: games where the team is listed first, then second.
     for game in team.division.game_set.filter(team1=team, team1_score__isnull=True):
         game.team1_score = 0
-        game.team2_score = 11
+        game.team2_score = target
         game.forfeit = True
         game.save()
         changed += 1
     for game in team.division.game_set.filter(team2=team, team1_score__isnull=True):
-        game.team1_score = 11
+        game.team1_score = target
         game.team2_score = 0
         game.forfeit = True
         game.save()
         changed += 1
     return changed
+
+
+def build_scramble(players):
+    # Each round robin "pair" is two partners. Every round gives every player one partner.
+    games = []
+    round_number = 1
+    for round_pairs in round_robin_rounds(players):
+        # Take the partner pairs two at a time: pair 1 plays pair 2, pair 3 plays pair 4, ...
+        game_number = 1
+        for i in range(0, len(round_pairs), 2):
+            a1, a2 = round_pairs[i]
+            b1, b2 = round_pairs[i + 1]
+            games.append((round_number, game_number, a1, a2, b1, b2))
+            game_number += 1
+        round_number += 1
+    return games
+
+
+def can_enter_scramble_score(user, game):
+    tournament = game.division.tournament
+    if is_admin(user, tournament):
+        return True
+    # Logged-out users can't enter scores.
+    if not user.is_authenticated:
+        return False
+    # Players only when the admin allows it, and only the first score (it then stands).
+    if not tournament.players_enter_scores or game.a_score is not None:
+        return False
+    players = [game.a1.captain, game.a2.captain, game.b1.captain, game.b2.captain]
+    return user in players
+
+
+def scramble_court_conflict(game, court, start_time):
+    # Same overlap rule as court_conflict, but against other scramble games in the tournament.
+    new_start = minutes_of_day(start_time)
+    new_end = new_start + game.division.game_length()
+    others = ScrambleGame.objects.filter(division__tournament=game.division.tournament,
+                                         court=court).exclude(id=game.id).exclude(start_time=None)
+    for other in others:
+        other_start = minutes_of_day(other.start_time)
+        other_end = other_start + other.division.game_length()
+        # Two games overlap when each one starts before the other one ends.
+        if new_start < other_end and other_start < new_end:
+            return other
+    return None
+
+
+def scramble_standings(division):
+    # One row per player, keyed by the player's Team id while we count.
+    rows = {}
+    for player in division.team_set.all():
+        rows[player.id] = {'team': player, 'played': 0, 'wins': 0, 'losses': 0, 'points': 0,
+                           'allowed': 0}
+
+    games = division.scramblegame_set.filter(a_score__isnull=False, b_score__isnull=False)
+    for game in games:
+        side_a = [rows[game.a1.id], rows[game.a2.id]]
+        side_b = [rows[game.b1.id], rows[game.b2.id]]
+        winner = game.winning_side()
+        # Each player gets their side's score as points, and the other side's as allowed.
+        for row in side_a:
+            row['played'] += 1
+            row['points'] += game.a_score
+            row['allowed'] += game.b_score
+            if winner == 'a':
+                row['wins'] += 1
+            elif winner == 'b':
+                row['losses'] += 1
+        for row in side_b:
+            row['played'] += 1
+            row['points'] += game.b_score
+            row['allowed'] += game.a_score
+            if winner == 'b':
+                row['wins'] += 1
+            elif winner == 'a':
+                row['losses'] += 1
+
+    rows = list(rows.values())
+    # Point differential (+/-): points scored minus points allowed. The last tie-breaker.
+    for row in rows:
+        row['diff'] = row['points'] - row['allowed']
+
+    if division.tournament.ranking_method == 'points':
+        # Sort by points, then wins, then +/-. reverse=True puts the biggest first.
+        return sorted(rows, key=lambda row: (row['points'], row['wins'], row['diff']), reverse=True)
+    # Sort by wins, then points, then +/-. reverse=True puts the biggest first.
+    return sorted(rows, key=lambda row: (row['wins'], row['points'], row['diff']), reverse=True)
+
+
+def score_problem(division, score1, score2):
+    # Return what's wrong with a final score, or None if it's possible.
+    target = division.target_points()
+    high = max(score1, score2)
+    low = min(score1, score2)
+    if high < target:
+        return f'The winner needs at least {target} points.'
+    if division.needs_win_by_two():
+        if high - low < 2:
+            return 'The winner has to win by 2.'
+        # Past the target, the game ends as soon as someone leads by 2.
+        if high > target and high - low != 2:
+            return f'After {target} points, a game ends as soon as someone leads by 2.'
+    elif high != target:
+        return f'Games end at {target} points.'
+    return None

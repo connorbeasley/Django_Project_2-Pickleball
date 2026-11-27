@@ -22,4 +22,8 @@ urlpatterns = [
     path('divisions/<int:division_id>/times/auto/', views.auto_times, name='auto_times'),
     path('games/<int:game_id>/score/', views.enter_score, name='enter_score'),
     path('teams/<int:team_id>/drop/', views.drop_team, name='drop_team'),
+    path('scramble-games/<int:game_id>/edit/', views.edit_scramble_game,
+         name='edit_scramble_game'),
+    path('scramble-games/<int:game_id>/score/', views.enter_scramble_score,
+         name='enter_scramble_score'),
 ]

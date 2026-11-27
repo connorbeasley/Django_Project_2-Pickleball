@@ -6,7 +6,7 @@ When a team drops out, every game it hasn't played yet becomes a forfeit: a loss
 ## helpers.py
 `forfeit_remaining_games(team)`:
 1. Find every game in `team.division` where `team1` or `team2` is this team and `team1_score` is empty. Use two queries (one for team1, one for team2) to keep it readable.
-2. For each one, give the other team 11 and this team 0, and set `forfeit = True`. Save.
+2. For each one, give the other team the division's `target_points()` (usually 11) and this team 0, and set `forfeit = True`. Save.
 3. Return how many games were changed.
 
 ## Pages
@@ -29,6 +29,7 @@ When a team drops out, every game it hasn't played yet becomes a forfeit: a loss
 
 ## Acceptance tests
 - 4 teams, schedule built, week 1 scored. Drop team 2: every later game with team 2 shows 11 - 0 for the opponent and "(forfeit)". Week 1 scores don't change.
+- In a division played to 15, forfeits show 15 - 0.
 - Standings: team 2 picks up a loss for every forfeit, and their opponents pick up wins.
 - Drop the same team again: error.
 - As a non-admin, the drop URL gives 404.

@@ -2,6 +2,7 @@
 {% block content %}
   <p><a href="{% url 'tournaments:division' game.division.id %}">{{ game.division }}</a></p>
   <p>Week {{ game.week }}, game {{ game.game_number }}: {{ game.team1 }} vs {{ game.team2 }}</p>
+  <p>Games are played to {{ game.division.target_points }}{% if game.division.needs_win_by_two %}, win by 2{% endif %}.</p>
   <form action="{% url 'tournaments:enter_score' game.id %}" method="post">
     {% csrf_token %}
     {{ form.as_p }}

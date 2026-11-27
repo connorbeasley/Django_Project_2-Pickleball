@@ -11,9 +11,9 @@ A staff user (`is_staff`, set in /admin) can create a tournament and becomes its
 
 ### New tournament (`tournaments/new/`, `new_tournament`) - staff only
 - `@login_required`, then `raise Http404` if `request.user.is_staff` is False.
-- `TournamentForm` (ModelForm) with fields: `name`, `start_date`, `num_weeks`, `num_courts`, `ranking_method`, `players_enter_scores`, `game_minutes`.
+- `TournamentForm` (ModelForm) with fields: `name`, `start_date`, `num_weeks`, `num_courts`, `ranking_method`, `players_enter_scores`, `game_minutes`, `points_to_win`, `win_by_two`.
 - In the form's `Meta`, set `widgets = {'start_date': forms.DateInput(attrs={'type': 'date'})}` so the browser shows a date picker (see Pattern 4 in `CLAUDE.md`).
-- Labels: "Number of weeks (1 for a one-day event)", "Number of courts", "Rank teams by", "Let players enter their own scores", "Game length in minutes (for every division)".
+- Labels: "Number of weeks (1 for a one-day event)", "Number of courts", "Rank teams by", "Let players enter their own scores", "Game length in minutes (for every division)", "Games are played to (points)", "Must win by 2".
 - On a valid POST: `form.save(commit=False)`, set `join_code = make_join_code()`, save, then add `request.user` to both `admins` and `members`. (Many-to-many fields can only be added to after the first save.) Redirect to the tournament detail page.
 
 ### Tournament detail (`tournaments/<int:tournament_id>/`, `tournament`) - public

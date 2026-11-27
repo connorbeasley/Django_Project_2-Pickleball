@@ -25,21 +25,28 @@ In a scramble, players sign up alone. Each round, players get a new partner. Wit
 
 Register it in /admin.
 
+Also give it `__str__` ("Round 1: Amy and Ben vs Cara and Dan"), `winning_side()` (returns `'a'`, `'b'`, or None, like `Game.winner()`), and `clean()` that refuses tied scores, same as `Game`.
+
 ## helpers.py
 `build_scramble(players)`:
 1. `rounds = round_robin_rounds(players)`.
 2. In each round, take the partner pairs two at a time: pair 1 plays pair 2, pair 3 plays pair 4, and so on.
 3. Return tuples `(round_number, game_number, a1, a2, b1, b2)`.
 
-`scramble_standings(division)`: one row per player: played, wins, losses, points. A player on the winning side gets the win and that side's score as points. Sort the same way as `standings`.
+`scramble_standings(division)`: one row per player: played, wins, losses, points, and +/- (points allowed is the other side's score). A player on the winning side gets the win and that side's score as points. Sort the same way as `standings`, including the +/- tie-breaker.
+
+`can_enter_scramble_score(user, game)` and `scramble_court_conflict(game, court, start_time)` work like `can_enter_score` and `court_conflict`. `registration_closed` and `scores_entered` also look at the division's scramble games.
+
+Court check note: scramble games are only checked against other scramble games in the tournament. Doubles games have weeks and scramble games don't, so a scramble and a doubles division on the same night in one tournament aren't checked against each other.
 
 ## Page changes
 - Division page for scramble: Teams section is titled "Players". Button text "Sign up". No "Join as partner" buttons. No "Drop" links.
 - `new_team` in a scramble division: the form label is "Your name" (or "Player name" for admins).
-- `generate_schedule` in a scramble division: require at least 4 players and a count divisible by 4 ("Scramble needs 4, 8, 12... players."). Delete old `ScrambleGame` rows, create new ones from `build_scramble`, redirect.
+- `generate_schedule` in a scramble division: require at least 4 players and a count divisible by 4 ("Scramble needs 4, 8, 12... players."). Delete old `ScrambleGame` rows, create new ones from `build_scramble`, message "Scramble created: 14 games in 7 rounds.", redirect.
+- `join_team` in a scramble division: error "Scramble players sign up alone."
 - Schedule table for scramble: "Round N" headings, columns Game #, Time, Court, Side A ("Amy and Ben"), Score, Side B.
-- Scores: add `enter_scramble_score` and `edit_scramble_game` views that work like specs 06 and 07, with the same tie and court checks. Players may enter a score if they're one of the four players and `players_enter_scores` is on.
-- `auto_courts` and `copy_week_one` don't apply to scramble. Hide those buttons. Auto-assign courts can use `court_for` on `game_number` if it's quick.
+- Scores: add `enter_scramble_score` and `edit_scramble_game` views that work like specs 06 and 07, with the same tie, court, and player score-rule (`score_problem`) checks. Players may enter a score if they're one of the four players and `players_enter_scores` is on.
+- `copy_week_one` and `auto_times` (added in spec 06) don't apply to scramble: hide them, and the views say "Not used for scramble." Auto-assign courts works for scramble using `court_for` on `game_number`.
 - Standings use `scramble_standings`.
 
 ## Acceptance tests

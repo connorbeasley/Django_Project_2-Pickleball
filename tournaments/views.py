@@ -118,6 +118,14 @@ def division(request, division_id):
     game_rows = []
     for game in division.game_set.order_by('week', 'game_number'):
         game_rows.append((game, can_enter_score(request.user, game)))
+    # Scramble divisions use ScrambleGame rows and per-player standings instead.
+    scramble_rows = []
+    for game in division.scramblegame_set.order_by('round_number', 'game_number'):
+        scramble_rows.append((game, can_enter_scramble_score(request.user, game)))
+    if division.format == 'scramble':
+        standings_rows = scramble_standings(division)
+    else:
+        standings_rows = standings(division)
     context = {
         'division': division,
         'teams': teams,
@@ -126,7 +134,8 @@ def division(request, division_id):
         'user_team': user_team_in_division(request.user, division),
         'closed': registration_closed(division),
         'game_rows': game_rows,
-        'standings_rows': standings(division),
+        'scramble_rows': scramble_rows,
+        'standings_rows': standings_rows,
     }
     return render(request, 'tournaments/division.html', context)
 
@@ -207,6 +216,12 @@ def new_team(request, division_id):
                 messages.info(request, 'Team added. Rebuild the schedule to give them games.')
             return redirect('tournaments:division', division_id=division.id)
 
+    # In a scramble each "team" is one player, so ask for a name instead.
+    if division.format == 'scramble':
+        if user_is_admin:
+            form.fields['name'].label = 'Player name'
+        else:
+            form.fields['name'].label = 'Your name'
     context = {'division': division, 'form': form}
     return render(request, 'tournaments/new_team.html', context)
 
@@ -216,7 +231,9 @@ def join_team(request, team_id):
     team = get_object_or_404(Team, id=team_id)
     division = team.division
     if request.method == 'POST':
-        if not is_member(request.user, division.tournament):
+        if division.format == 'scramble':
+            messages.error(request, 'Scramble players sign up alone.')
+        elif not is_member(request.user, division.tournament):
             messages.error(request, 'Join the tournament first.')
         elif registration_closed(division):
             messages.error(request, 'Registration is closed.')
@@ -266,12 +283,11 @@ def generate_schedule(request, division_id):
     if not is_admin(request.user, division.tournament):
         raise Http404
     if request.method == 'POST':
-        if division.format == 'scramble':
-            messages.error(request, 'Scramble schedules come in a later update.')
-            return redirect('tournaments:division', division_id=division.id)
         if scores_entered(division):
             messages.error(request, "Scores have been entered, so the schedule can't be rebuilt.")
             return redirect('tournaments:division', division_id=division.id)
+        if division.format == 'scramble':
+            return generate_scramble(request, division)
         teams = division.team_set.filter(dropped=False).order_by('id')
         n = teams.count()
         if n < 2:
@@ -294,6 +310,26 @@ def generate_schedule(request, division_id):
             messages.success(request, 'Schedule created: 1 game.')
         else:
             messages.success(request, f'Schedule created: {len(schedule)} games.')
+    return redirect('tournaments:division', division_id=division.id)
+
+
+def generate_scramble(request, division):
+    # Not a page of its own: generate_schedule calls this for scramble divisions
+    # after it has already checked the admin and the request method.
+    players = division.team_set.order_by('id')
+    n = players.count()
+    # Every round needs groups of 4 (two partner pairs), so the count must divide by 4.
+    if n < 4 or n % 4 != 0:
+        messages.error(request, 'Scramble needs 4, 8, 12... players.')
+        return redirect('tournaments:division', division_id=division.id)
+
+    # Start fresh, then save one ScrambleGame for each game.
+    division.scramblegame_set.all().delete()
+    schedule = build_scramble(players)
+    for round_number, game_number, a1, a2, b1, b2 in schedule:
+        ScrambleGame.objects.create(division=division, round_number=round_number,
+                                    game_number=game_number, a1=a1, a2=a2, b1=b1, b2=b2)
+    messages.success(request, f'Scramble created: {len(schedule)} games in {n - 1} rounds.')
     return redirect('tournaments:division', division_id=division.id)
 
 
@@ -337,7 +373,12 @@ def auto_courts(request, division_id):
         raise Http404
     if request.method == 'POST':
         num_courts = division.tournament.num_courts
-        for game in division.game_set.all():
+        # Scramble divisions keep their games in ScrambleGame instead of Game.
+        if division.format == 'scramble':
+            games = division.scramblegame_set.all()
+        else:
+            games = division.game_set.all()
+        for game in games:
             game.court = court_for(game.game_number, num_courts)
             game.save()
         messages.success(request, 'Courts assigned.')
@@ -349,6 +390,9 @@ def copy_week_one(request, division_id):
     division = get_object_or_404(Division, id=division_id)
     if not is_admin(request.user, division.tournament):
         raise Http404
+    if division.format == 'scramble':
+        messages.error(request, 'Not used for scramble.')
+        return redirect('tournaments:division', division_id=division.id)
     if request.method == 'POST':
         # Look up week 1 games by their game number, like {1: game, 2: game, ...}
         week_one = {}
@@ -370,6 +414,9 @@ def auto_times(request, division_id):
     division = get_object_or_404(Division, id=division_id)
     if not is_admin(request.user, division.tournament):
         raise Http404
+    if division.format == 'scramble':
+        messages.error(request, 'Not used for scramble.')
+        return redirect('tournaments:division', division_id=division.id)
 
     if request.method != 'POST':
         # GET: show an empty form
@@ -428,9 +475,16 @@ def enter_score(request, game_id):
     form.fields['team2_score'].label = game.team2.name
 
     if request.method == 'POST' and form.is_valid():
-        if form.cleaned_data['team1_score'] == form.cleaned_data['team2_score']:
+        score1 = form.cleaned_data['team1_score']
+        score2 = form.cleaned_data['team2_score']
+        if score1 == score2:
             form.add_error(None, "Scores can't be tied.")
-        else:
+        # Players must enter a score that fits the division's rules. Admins can enter anything.
+        elif not is_admin(request.user, game.division.tournament):
+            problem = score_problem(game.division, score1, score2)
+            if problem:
+                form.add_error(None, problem)
+        if not form.errors:
             form.save()
             return redirect('tournaments:division', division_id=game.division.id)
 
@@ -465,3 +519,70 @@ def drop_team(request, team_id):
     # GET: ask the admin to confirm first, since this can't be undone here.
     context = {'team': team}
     return render(request, 'tournaments/drop_team.html', context)
+
+
+@login_required
+def edit_scramble_game(request, game_id):
+    game = get_object_or_404(ScrambleGame, id=game_id)
+    tournament = game.division.tournament
+    if not is_admin(request.user, tournament):
+        raise Http404
+
+    if request.method != 'POST':
+        # GET: show the form filled in with the current court and time
+        form = ScrambleScheduleForm(instance=game)
+    else:
+        # POST: save the new court and time over the same game
+        form = ScrambleScheduleForm(instance=game, data=request.POST)
+        if form.is_valid():
+            court = form.cleaned_data['court']
+            start_time = form.cleaned_data['start_time']
+            if court is not None and (court < 1 or court > tournament.num_courts):
+                form.add_error(None, f'This tournament only has {tournament.num_courts} courts.')
+            # Only check for a clash when both a court and a time are filled in.
+            elif court is not None and start_time is not None:
+                other = scramble_court_conflict(game, court, start_time)
+                if other:
+                    form.add_error(None, f'Court {court} is already used by {other.division} '
+                                         f'from {format_time(other.start_time)} '
+                                         f'({other.division.game_length()} minute games).')
+            if not form.errors:
+                form.save()
+                return redirect('tournaments:division', division_id=game.division.id)
+
+    context = {'game': game, 'form': form}
+    return render(request, 'tournaments/edit_scramble_game.html', context)
+
+
+@login_required
+def enter_scramble_score(request, game_id):
+    game = get_object_or_404(ScrambleGame, id=game_id)
+    if not can_enter_scramble_score(request.user, game):
+        raise Http404
+
+    if request.method != 'POST':
+        # GET: show the form (filled in if a score already exists)
+        form = ScrambleScoreForm(instance=game)
+    else:
+        # POST: save the score over the same game
+        form = ScrambleScoreForm(instance=game, data=request.POST)
+    # Label each box with the two partners' names.
+    form.fields['a_score'].label = f'{game.a1.name} and {game.a2.name}'
+    form.fields['b_score'].label = f'{game.b1.name} and {game.b2.name}'
+
+    if request.method == 'POST' and form.is_valid():
+        score_a = form.cleaned_data['a_score']
+        score_b = form.cleaned_data['b_score']
+        if score_a == score_b:
+            form.add_error(None, "Scores can't be tied.")
+        # Players must enter a score that fits the division's rules. Admins can enter anything.
+        elif not is_admin(request.user, game.division.tournament):
+            problem = score_problem(game.division, score_a, score_b)
+            if problem:
+                form.add_error(None, problem)
+        if not form.errors:
+            form.save()
+            return redirect('tournaments:division', division_id=game.division.id)
+
+    context = {'game': game, 'form': form}
+    return render(request, 'tournaments/enter_scramble_score.html', context)

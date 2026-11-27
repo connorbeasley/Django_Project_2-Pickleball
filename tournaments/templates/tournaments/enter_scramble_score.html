@@ -1,0 +1,12 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <p><a href="{% url 'tournaments:division' game.division.id %}">{{ game.division }}</a></p>
+  <p>Round {{ game.round_number }}, game {{ game.game_number }}:
+     {{ game.a1 }} and {{ game.a2 }} vs {{ game.b1 }} and {{ game.b2 }}</p>
+  <p>Games are played to {{ game.division.target_points }}{% if game.division.needs_win_by_two %}, win by 2{% endif %}.</p>
+  <form action="{% url 'tournaments:enter_scramble_score' game.id %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Save score</button>
+  </form>
+{% endblock content %}
