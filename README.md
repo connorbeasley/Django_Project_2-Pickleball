@@ -4,7 +4,7 @@ This is a Django web app I built for my class, based on what the Director of Pic
 
 ## Live site
 
-**URL:** (paste the Render link here)
+**URL:** (https://django-project-2-pickleball.onrender.com/)
 
 The live site starts from the data in this repo every time Render restarts, so anything you change there goes away on the next restart.
 
