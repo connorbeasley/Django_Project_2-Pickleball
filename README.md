@@ -4,7 +4,7 @@ This is a Django web app I built for my class, based on what the Director of Pic
 
 ## Live site
 
-**URL:** (https://django-project-2-pickleball.onrender.com/)
+**URL:** https://django-project-2-pickleball.onrender.com/
 
 The live site starts from the data in this repo every time Render restarts, so anything you change there goes away on the next restart.
 
@@ -14,13 +14,16 @@ All demo accounts use the same password: `a;sldkfj`
 
 | Username | What it is | What to try |
 |---|---|---|
-| `director` | The director. A staff user, so she can create tournaments, and the admin of the demo league. | Create a tournament, add a division, build a schedule, set times, enter scores, drop a team. |
+| `director` | The director. A staff user, so she can create tournaments, and the admin of both demo events. | Create a tournament, add a division, build a schedule, set times, enter scores, drop a team. |
 | `coadmin` | A second admin of the demo league (not staff). | Manage the demo league. Can't create new tournaments. |
-| `player1` | A player on the team "Dink Dynasty". | See the schedule and standings. No admin links, no "Create a tournament". |
-| `player2` | player1's partner on "Dink Dynasty". | Same as player1. |
-| Spectator | No login needed. | Open the home page, click the league, then the division. |
+| `player1` | On the team "Dink Dynasty" in the league, and signed up as "Pat (player1)" in the scramble. | See schedules and standings. In the scramble, enter the score for one of Pat's unplayed games. No admin links, no "Create a tournament". |
+| `player2` | player1's partner on "Dink Dynasty", and "Sam (player2)" in the scramble. | Same as player1, for Sam's scramble games. |
+| Spectator | No login needed. | Open the home page, click an event, then its division. |
 
-The demo league is **Waco Regional Tuesday League**: 4 weeks, 4 courts, one division (Beginner Women's doubles) with 4 teams. Weeks 1 and 2 are scored, and "Lob Stars" dropped out, so their later games show as forfeits.
+There are two demo events:
+
+- **Waco Regional Tuesday League**: 4 weeks, 4 courts, one division (Beginner Women's doubles) with 4 teams. Weeks 1 and 2 are scored, and "Lob Stars" dropped out, so their later games show as forfeits. Players can't enter scores here, only admins.
+- **Waco Regional Friday Scramble**: a one-night scramble with 8 players. Every player partners every other player once over 7 rounds (14 games), starting at 6:00 PM with a new round every 30 minutes. Rounds 1 to 3 are scored, plus one round 4 game that player1 entered. Players can enter their own scores here, and the app checks them (games to 11, win by 2).
 
 ## What the director asked for
 
