@@ -44,11 +44,11 @@
   {% if user_is_admin %}
     <form action="{% url 'tournaments:generate_schedule' division.id %}" method="post">
       {% csrf_token %}
-      <button name="submit">{% if games %}Rebuild schedule{% else %}Build schedule{% endif %}</button>
+      <button name="submit">{% if game_rows %}Rebuild schedule{% else %}Build schedule{% endif %}</button>
     </form>
   {% endif %}
 
-  {% if games %}
+  {% if game_rows %}
     {% if user_is_admin %}
       <form action="{% url 'tournaments:auto_courts' division.id %}" method="post">
         {% csrf_token %}
@@ -63,9 +63,9 @@
     <table>
       <tr>
         <th>Game #</th><th>Time</th><th>Court</th><th>Team 1</th><th>Score</th><th>Team 2</th>
-        {% if user_is_admin %}<th></th>{% endif %}
+        {% if user.is_authenticated %}<th></th>{% endif %}
       </tr>
-      {% for game in games %}
+      {% for game, can_score in game_rows %}
         {% ifchanged game.week %}
           <tr><th colspan="7">Week {{ game.week }}</th></tr>
         {% endifchanged %}
@@ -77,8 +77,17 @@
           <td>{{ game.team1 }}</td>
           <td>{% if game.team1_score is not None %}{{ game.team1_score }} - {{ game.team2_score }}{% else %}-{% endif %}</td>
           <td>{{ game.team2 }}</td>
-          {% if user_is_admin %}
-            <td><a href="{% url 'tournaments:edit_game' game.id %}">Edit</a></td>
+          {% if user.is_authenticated %}
+            <td>
+              {% if user_is_admin %}
+                <a href="{% url 'tournaments:edit_game' game.id %}">Edit</a>
+              {% endif %}
+              {% if can_score %}
+                <a href="{% url 'tournaments:enter_score' game.id %}">
+                  {% if game.team1_score is not None %}Edit score{% else %}Enter score{% endif %}
+                </a>
+              {% endif %}
+            </td>
           {% endif %}
         </tr>
       {% endfor %}

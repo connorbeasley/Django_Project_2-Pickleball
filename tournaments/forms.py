@@ -67,3 +67,13 @@ class GameScheduleForm(forms.ModelForm):
 class AutoTimesForm(forms.Form):
     first_time = forms.TimeField(label='First game starts at',
                                  widget=forms.TimeInput(attrs={'type': 'time'}))
+
+
+class ScoreForm(forms.ModelForm):
+    # Declared here so both are required on this form, even though the model allows blanks.
+    team1_score = forms.IntegerField(min_value=0)
+    team2_score = forms.IntegerField(min_value=0)
+
+    class Meta:
+        model = Game
+        fields = ['team1_score', 'team2_score']

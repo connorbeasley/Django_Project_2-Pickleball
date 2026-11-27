@@ -114,6 +114,10 @@ def division(request, division_id):
     division = get_object_or_404(Division, id=division_id)
     teams = division.team_set.order_by('name')
     tournament = division.tournament
+    # A template can't call can_enter_score(user, game), so work it out here for each game.
+    game_rows = []
+    for game in division.game_set.order_by('week', 'game_number'):
+        game_rows.append((game, can_enter_score(request.user, game)))
     context = {
         'division': division,
         'teams': teams,
@@ -121,7 +125,7 @@ def division(request, division_id):
         'user_is_member': is_member(request.user, tournament),
         'user_team': user_team_in_division(request.user, division),
         'closed': registration_closed(division),
-        'games': division.game_set.order_by('week', 'game_number'),
+        'game_rows': game_rows,
     }
     return render(request, 'tournaments/division.html', context)
 
@@ -398,3 +402,30 @@ def auto_times(request, division_id):
 
     context = {'division': division, 'form': form}
     return render(request, 'tournaments/auto_times.html', context)
+
+
+@login_required
+def enter_score(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    if not can_enter_score(request.user, game):
+        raise Http404
+
+    if request.method != 'POST':
+        # GET: show the form (filled in if a score already exists)
+        form = ScoreForm(instance=game)
+    else:
+        # POST: save the score over the same game
+        form = ScoreForm(instance=game, data=request.POST)
+    # Label each box with the team's name instead of "Team1 score".
+    form.fields['team1_score'].label = game.team1.name
+    form.fields['team2_score'].label = game.team2.name
+
+    if request.method == 'POST' and form.is_valid():
+        if form.cleaned_data['team1_score'] == form.cleaned_data['team2_score']:
+            form.add_error(None, "Scores can't be tied.")
+        else:
+            form.save()
+            return redirect('tournaments:division', division_id=game.division.id)
+
+    context = {'game': game, 'form': form}
+    return render(request, 'tournaments/enter_score.html', context)

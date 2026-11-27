@@ -111,3 +111,17 @@ def scores_entered(division):
     # True if any game in this division has a score.
     # team1_score__isnull=False means "team1_score is not empty".
     return division.game_set.filter(team1_score__isnull=False).exists()
+
+
+def can_enter_score(user, game):
+    tournament = game.division.tournament
+    if is_admin(user, tournament):
+        return True
+    # Logged-out users can't enter scores.
+    if not user.is_authenticated:
+        return False
+    # Players only when the admin allows it, and only the first score (it then stands).
+    if not tournament.players_enter_scores or game.team1_score is not None:
+        return False
+    players = [game.team1.captain, game.team1.partner, game.team2.captain, game.team2.partner]
+    return user in players
