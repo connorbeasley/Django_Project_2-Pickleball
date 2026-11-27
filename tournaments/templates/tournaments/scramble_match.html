@@ -1,0 +1,25 @@
+<!-- One scramble game, drawn inside a court board cell (included from division.html) -->
+<div class="match">
+  <div class="match-label">Round {{ game.round_number }}, game {{ game.game_number }}</div>
+  {% with side=game.winning_side %}
+    <!-- win = bold, lose = muted. Neither class until the game has a score. -->
+    <div class="side {% if side == 'a' %}win{% elif side == 'b' %}lose{% endif %}">
+      <span>{{ game.a1 }} and {{ game.a2 }}</span>
+      <span class="score">{% if game.a_score is not None %}{{ game.a_score }}{% endif %}</span>
+    </div>
+    <div class="side {% if side == 'b' %}win{% elif side == 'a' %}lose{% endif %}">
+      <span>{{ game.b1 }} and {{ game.b2 }}</span>
+      <span class="score">{% if game.b_score is not None %}{{ game.b_score }}{% endif %}</span>
+    </div>
+  {% endwith %}
+  {% if user_is_admin or game.can_score %}
+    <div class="match-links">
+      {% if user_is_admin %}
+        <a href="{% url 'tournaments:edit_scramble_game' game.id %}">Edit</a>
+      {% endif %}
+      {% if game.can_score %}
+        <a href="{% url 'tournaments:enter_scramble_score' game.id %}">{% if game.a_score is not None %}Edit score{% else %}Enter score{% endif %}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

@@ -114,17 +114,26 @@ def division(request, division_id):
     division = get_object_or_404(Division, id=division_id)
     teams = division.team_set.order_by('name')
     tournament = division.tournament
-    # A template can't call can_enter_score(user, game), so work it out here for each game.
-    game_rows = []
-    for game in division.game_set.order_by('week', 'game_number'):
-        game_rows.append((game, can_enter_score(request.user, game)))
-    # Scramble divisions use ScrambleGame rows and per-player standings instead.
-    scramble_rows = []
-    for game in division.scramblegame_set.order_by('round_number', 'game_number'):
-        scramble_rows.append((game, can_enter_scramble_score(request.user, game)))
+    # Build one court board per night: each week for doubles, the whole night for scramble.
+    num_courts = tournament.num_courts
+    boards = []
     if division.format == 'scramble':
+        games = list(division.scramblegame_set.order_by('round_number', 'game_number'))
+        for game in games:
+            # An extra attribute the template can read (it can't call can_enter_scramble_score itself).
+            game.can_score = can_enter_scramble_score(request.user, game)
+        if games:
+            boards.append({'title': 'Tonight', 'board': court_board(games, num_courts)})
         standings_rows = scramble_standings(division)
     else:
+        games = list(division.game_set.order_by('week', 'game_number'))
+        for game in games:
+            # An extra attribute the template can read (it can't call can_enter_score itself).
+            game.can_score = can_enter_score(request.user, game)
+        for week in range(1, tournament.num_weeks + 1):
+            week_games = [game for game in games if game.week == week]
+            if week_games:
+                boards.append({'title': f'Week {week}', 'board': court_board(week_games, num_courts)})
         standings_rows = standings(division)
     context = {
         'division': division,
@@ -133,8 +142,8 @@ def division(request, division_id):
         'user_is_member': is_member(request.user, tournament),
         'user_team': user_team_in_division(request.user, division),
         'closed': registration_closed(division),
-        'game_rows': game_rows,
-        'scramble_rows': scramble_rows,
+        'boards': boards,
+        'has_games': len(games) > 0,
         'standings_rows': standings_rows,
     }
     return render(request, 'tournaments/division.html', context)

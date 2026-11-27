@@ -8,9 +8,79 @@
   <title>Waco Regional Pickleball</title>
   {% bootstrap_css %}
   {% bootstrap_javascript jquery='full' %}
+  <!-- A condensed athletic font for headings, like a scoreboard -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+  <!-- Our own styles go here (not in a separate .css file) because Render doesn't serve static files. -->
+  <style>
+    /* Colors taken from a pickleball court */
+    :root {
+      --court: #2f6b4f;       /* court green */
+      --court-dark: #1f4a37;
+      --court-light: #e3eee6; /* board cells */
+      --kitchen: #2c5d8a;     /* kitchen blue */
+      --ball: #d4dd2a;        /* pickleball yellow, the one accent color */
+      --ink: #1c2621;
+      --paper: #f6f7f3;
+      --muted: #7a857f;
+    }
+
+    body { background: var(--paper); color: var(--ink); }
+    a { color: var(--kitchen); }
+
+    /* Headings: condensed and a little spaced out */
+    h1, h2, h3, .navbar-brand, .night-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    /* Section headings get a line under them, like a court marking */
+    section h2 { border-bottom: 2px solid var(--court); padding-bottom: 0.25rem; }
+
+    /* Navbar: court green with a yellow line under it */
+    .navbar-court { background: var(--court); border-bottom: 4px solid var(--ball); }
+    .navbar-court .navbar-brand, .navbar-court .nav-link, .navbar-court .navbar-text { color: #fff; }
+    .navbar-court .nav-link:hover { color: var(--ball); }
+
+    /* Buttons and inputs: flat with small corners, no shadows */
+    .btn, .form-control, .alert, .list-group-item:first-child, .list-group-item:last-child, .card { border-radius: 3px; }
+    .btn:focus, .form-control:focus { box-shadow: none; }
+    .btn-primary { background: var(--court); border-color: var(--court); }
+    .btn-primary:hover, .btn-primary:focus { background: var(--court-dark); border-color: var(--court-dark); }
+
+    /* Table headers in small capitals, like a stat sheet */
+    .table th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+    /* Scores line up like a scoreboard: every digit is the same width */
+    .score { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 1.5rem; text-align: right; }
+
+    /* ---- Court board: one row per time, one column per court ---- */
+    .night-title { font-size: 1.3rem; margin-top: 1.5rem; color: var(--court-dark); }
+    .court-board { border-collapse: collapse; width: 100%; }
+    /* White borders between cells look like the lines on a court */
+    .court-board td, .court-board th { border: 3px solid #fff; padding: 0.5rem; vertical-align: top; }
+    .court-board td { background: var(--court-light); min-width: 11rem; }
+    .court-board th { background: var(--court); color: #fff; font-family: 'Barlow Condensed', sans-serif; text-align: center; }
+    .court-board th.time { background: var(--kitchen); white-space: nowrap; width: 1%; }
+    .open { color: var(--muted); font-style: italic; }
+
+    /* One game inside a cell */
+    .match-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .side { display: flex; justify-content: space-between; gap: 0.5rem; }
+    .side.win { font-weight: 700; }
+    .side.lose { color: var(--muted); }
+    .tag { background: var(--ball); color: var(--ink); padding: 0 0.3rem; border-radius: 2px; font-size: 0.7rem; }
+    .match-links { margin-top: 0.25rem; font-size: 0.85rem; }
+    .match-links a { margin-right: 0.5rem; }
+
+    /* Games still waiting for a court and time, shown under the board */
+    .unplaced-title { margin: 1rem 0 0.25rem; font-weight: 600; color: var(--muted); }
+    .unplaced { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .unplaced .match { background: #fff; border: 1px solid #dfe5e0; padding: 0.5rem; width: 13rem; }
+  </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-md navbar-dark bg-success">
+  <nav class="navbar navbar-expand-md navbar-dark navbar-court">
     <a class="navbar-brand" href="{% url 'tournaments:index' %}">Waco Regional Pickleball</a>
     <!-- On phones the links fold into this menu button -->
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarLinks">

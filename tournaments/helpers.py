@@ -292,3 +292,26 @@ def score_problem(division, score1, score2):
     elif high != target:
         return f'Games end at {target} points.'
     return None
+
+
+def court_board(games, num_courts):
+    # Lay out one night's games as a grid: one row per start time, one column per court.
+    rows = {}       # start time -> one cell per court (a game, or None for an open court)
+    unplaced = []   # games still missing a time or a court
+    for game in games:
+        if game.start_time is None or game.court is None or game.court < 1 or game.court > num_courts:
+            unplaced.append(game)
+            continue
+        if game.start_time not in rows:
+            rows[game.start_time] = [None] * num_courts
+        cells = rows[game.start_time]
+        # Court 1 is position 0 in the list, court 2 is position 1, ...
+        if cells[game.court - 1] is None:
+            cells[game.court - 1] = game
+        else:
+            # Two games in one cell: show it below instead of hiding it.
+            unplaced.append(game)
+    board_rows = []
+    for time in sorted(rows):
+        board_rows.append({'time': time, 'cells': rows[time]})
+    return {'courts': list(range(1, num_courts + 1)), 'rows': board_rows, 'unplaced': unplaced}

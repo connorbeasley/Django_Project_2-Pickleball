@@ -1,0 +1,28 @@
+<!-- One doubles game, drawn inside a court board cell (included from division.html) -->
+<div class="match">
+  <div class="match-label">
+    Game {{ game.game_number }}
+    {% if game.forfeit %}<span class="tag">forfeit</span>{% endif %}
+  </div>
+  {% with winner=game.winner %}
+    <!-- win = bold, lose = muted. Neither class until the game has a score. -->
+    <div class="side {% if winner == game.team1 %}win{% elif winner %}lose{% endif %}">
+      <span>{{ game.team1.name }}</span>
+      <span class="score">{% if game.team1_score is not None %}{{ game.team1_score }}{% endif %}</span>
+    </div>
+    <div class="side {% if winner == game.team2 %}win{% elif winner %}lose{% endif %}">
+      <span>{{ game.team2.name }}</span>
+      <span class="score">{% if game.team2_score is not None %}{{ game.team2_score }}{% endif %}</span>
+    </div>
+  {% endwith %}
+  {% if user_is_admin or game.can_score %}
+    <div class="match-links">
+      {% if user_is_admin %}
+        <a href="{% url 'tournaments:edit_game' game.id %}">Edit</a>
+      {% endif %}
+      {% if game.can_score %}
+        <a href="{% url 'tournaments:enter_score' game.id %}">{% if game.team1_score is not None %}Edit score{% else %}Enter score{% endif %}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
