@@ -21,4 +21,5 @@ urlpatterns = [
     path('divisions/<int:division_id>/copy-week-one/', views.copy_week_one, name='copy_week_one'),
     path('divisions/<int:division_id>/times/auto/', views.auto_times, name='auto_times'),
     path('games/<int:game_id>/score/', views.enter_score, name='enter_score'),
+    path('teams/<int:team_id>/drop/', views.drop_team, name='drop_team'),
 ]

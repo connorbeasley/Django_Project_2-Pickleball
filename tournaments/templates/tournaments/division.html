@@ -34,6 +34,11 @@
         {% else %}
           {{ team.name }} (Added by admin)
         {% endif %}
+        {% if team.dropped %}
+          (dropped)
+        {% elif user_is_admin and division.format != 'scramble' %}
+          <a href="{% url 'tournaments:drop_team' team.id %}">Drop</a>
+        {% endif %}
       </li>
     {% empty %}
       <li>No teams yet.</li>
@@ -75,7 +80,7 @@
           <td>{% if game.start_time %}{{ game.start_time|time:"g:i A" }}{% else %}TBD{% endif %}</td>
           <td>{% if game.court %}{{ game.court }}{% else %}TBD{% endif %}</td>
           <td>{{ game.team1 }}</td>
-          <td>{% if game.team1_score is not None %}{{ game.team1_score }} - {{ game.team2_score }}{% else %}-{% endif %}</td>
+          <td>{% if game.team1_score is not None %}{{ game.team1_score }} - {{ game.team2_score }}{% if game.forfeit %} (forfeit){% endif %}{% else %}-{% endif %}</td>
           <td>{{ game.team2 }}</td>
           {% if user.is_authenticated %}
             <td>

@@ -290,7 +290,10 @@ def generate_schedule(request, division_id):
         for week, game_number, team1, team2 in schedule:
             Game.objects.create(division=division, week=week, game_number=game_number,
                                 team1=team1, team2=team2)
-        messages.success(request, f'Schedule created: {len(schedule)} games.')
+        if len(schedule) == 1:
+            messages.success(request, 'Schedule created: 1 game.')
+        else:
+            messages.success(request, f'Schedule created: {len(schedule)} games.')
     return redirect('tournaments:division', division_id=division.id)
 
 
@@ -394,7 +397,10 @@ def auto_times(request, division_id):
             for game in games:
                 if court_conflict(game, game.court, game.start_time):
                     clashes += 1
-            if clashes:
+            if clashes == 1:
+                messages.warning(request, 'Times filled in, but 1 game shares a court and time '
+                                          'with another division. Edit that game to fix it.')
+            elif clashes > 1:
                 messages.warning(request, f'Times filled in, but {clashes} games share a court and '
                                           f'time with another division. Edit those games to fix them.')
             else:
@@ -430,3 +436,32 @@ def enter_score(request, game_id):
 
     context = {'game': game, 'form': form}
     return render(request, 'tournaments/enter_score.html', context)
+
+
+@login_required
+def drop_team(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    division = team.division
+    if not is_admin(request.user, division.tournament):
+        raise Http404
+    if division.format == 'scramble':
+        messages.error(request, "Dropouts aren't supported in scramble.")
+        return redirect('tournaments:division', division_id=division.id)
+    if team.dropped:
+        messages.error(request, f'{team.name} has already dropped out.')
+        return redirect('tournaments:division', division_id=division.id)
+
+    if request.method == 'POST':
+        team.dropped = True
+        team.save()
+        count = forfeit_remaining_games(team)
+        # Use "game" and "forfeit" (not plural) when exactly one game changed.
+        if count == 1:
+            messages.success(request, f'{team.name} dropped. 1 game marked as a forfeit.')
+        else:
+            messages.success(request, f'{team.name} dropped. {count} games marked as forfeits.')
+        return redirect('tournaments:division', division_id=division.id)
+
+    # GET: ask the admin to confirm first, since this can't be undone here.
+    context = {'team': team}
+    return render(request, 'tournaments/drop_team.html', context)

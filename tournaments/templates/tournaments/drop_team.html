@@ -1,0 +1,10 @@
+{% extends 'tournaments/base.html' %}
+{% block content %}
+  <p><a href="{% url 'tournaments:division' team.division.id %}">{{ team.division }}</a></p>
+  <p>Drop {{ team.name }}? Their remaining games become forfeits. This can't be undone here.</p>
+  <form action="{% url 'tournaments:drop_team' team.id %}" method="post">
+    {% csrf_token %}
+    <button name="submit">Drop team</button>
+  </form>
+  <p><a href="{% url 'tournaments:division' team.division.id %}">Cancel</a></p>
+{% endblock content %}

@@ -164,3 +164,22 @@ def standings(division):
         return sorted(rows, key=lambda row: (row['points'], row['wins'], row['diff']), reverse=True)
     # Sort by wins, then points, then +/-. reverse=True puts the biggest first.
     return sorted(rows, key=lambda row: (row['wins'], row['points'], row['diff']), reverse=True)
+
+
+def forfeit_remaining_games(team):
+    # Every unplayed game for this team becomes an 11 - 0 win for the opponent.
+    changed = 0
+    # Two queries keep it readable: games where the team is listed first, then second.
+    for game in team.division.game_set.filter(team1=team, team1_score__isnull=True):
+        game.team1_score = 0
+        game.team2_score = 11
+        game.forfeit = True
+        game.save()
+        changed += 1
+    for game in team.division.game_set.filter(team2=team, team1_score__isnull=True):
+        game.team1_score = 11
+        game.team2_score = 0
+        game.forfeit = True
+        game.save()
+        changed += 1
+    return changed
