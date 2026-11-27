@@ -1,10 +1,12 @@
 {% extends 'tournaments/base.html' %}
+{% load bootstrap4 %}
 {% block content %}
   <p><a href="{% url 'tournaments:division' game.division.id %}">{{ game.division }}</a></p>
-  <p>Week {{ game.week }}, game {{ game.game_number }}: {{ game.team1 }} vs {{ game.team2 }}</p>
+  <h1 class="h3">Week {{ game.week }}, game {{ game.game_number }}</h1>
+  <p>{{ game.team1 }} vs {{ game.team2 }}</p>
   <form action="{% url 'tournaments:edit_game' game.id %}" method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button name="submit">Save</button>
+    {% bootstrap_form form %}
+    <button name="submit" class="btn btn-primary">Save</button>
   </form>
 {% endblock content %}

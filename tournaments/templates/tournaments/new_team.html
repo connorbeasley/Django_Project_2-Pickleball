@@ -1,10 +1,12 @@
 {% extends 'tournaments/base.html' %}
+{% load bootstrap4 %}
 {% block content %}
   <p><a href="{% url 'tournaments:division' division.id %}">{{ division }}</a></p>
-  <p>{% if division.format == 'scramble' %}Sign up:{% else %}Add a team:{% endif %}</p>
+  <h1 class="h3">{% if division.format == 'scramble' %}Sign up{% else %}Add a team{% endif %}</h1>
+
   <form action="{% url 'tournaments:new_team' division.id %}" method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button name="submit">Save team</button>
+    {% bootstrap_form form %}
+    <button name="submit" class="btn btn-primary">Save</button>
   </form>
 {% endblock content %}

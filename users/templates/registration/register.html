@@ -1,4 +1,9 @@
 {% extends "tournaments/base.html" %}
+{% load bootstrap4 %}
+
+{% block page_header %}
+  <h2>Create an account.</h2>
+{% endblock page_header %}
 
 {% block content %}
 
@@ -6,12 +11,10 @@
 
     {% csrf_token %}
 
-    {{ form.as_p }}
+    {% bootstrap_form form %}
 
-    <button name="submit">Register</button>
-
+    <button name="submit" class="btn btn-primary">Register</button>
 
 </form>
-
 
 {% endblock content %}

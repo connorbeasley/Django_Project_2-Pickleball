@@ -1,21 +1,25 @@
 {% extends 'tournaments/base.html' %}
 {% block content %}
   <h1>Waco Regional Pickleball</h1>
-  <p>Set up leagues and tournaments, build schedules, and follow scores and standings.</p>
+  <p class="lead">Set up leagues and tournaments, build schedules, and follow scores and standings.</p>
 
-  {% if user.is_staff %}
-    <p><a href="{% url 'tournaments:new_tournament' %}">Create a tournament</a></p>
-  {% endif %}
-  {% if user.is_authenticated %}
-    <p><a href="{% url 'tournaments:join_with_code' %}">Join with a code</a></p>
-  {% endif %}
+  <p>
+    {% if user.is_staff %}
+      <a class="btn btn-primary" href="{% url 'tournaments:new_tournament' %}">Create a tournament</a>
+    {% endif %}
+    {% if user.is_authenticated %}
+      <a class="btn btn-outline-secondary" href="{% url 'tournaments:join_with_code' %}">Join with a code</a>
+    {% endif %}
+  </p>
 
-  <h2>Tournaments</h2>
-  <ul>
+  <h2 class="h4 mt-4">Tournaments</h2>
+  <div class="list-group">
     {% for tournament in tournaments %}
-      <li><a href="{% url 'tournaments:tournament' tournament.id %}">{{ tournament.name }}</a></li>
+      <a class="list-group-item list-group-item-action" href="{% url 'tournaments:tournament' tournament.id %}">
+        {{ tournament.name }}
+      </a>
     {% empty %}
-      <li>No tournaments yet.</li>
+      <div class="list-group-item">No tournaments yet.</div>
     {% endfor %}
-  </ul>
+  </div>
 {% endblock content %}

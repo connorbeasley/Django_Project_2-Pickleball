@@ -1,36 +1,49 @@
 {% extends 'tournaments/base.html' %}
 {% block content %}
   <h1>{{ tournament.name }}</h1>
-  <ul>
-    <li>Starts: {{ tournament.start_date }}</li>
-    <li>Weeks: {{ tournament.num_weeks }}</li>
-    <li>Courts: {{ tournament.num_courts }}</li>
-    <li>Ranked by: {{ tournament.get_ranking_method_display }}</li>
-    <li>Players enter scores: {% if tournament.players_enter_scores %}Yes{% else %}No{% endif %}</li>
-    <li>Game length: {{ tournament.game_minutes }} minutes</li>
-    <li>Games to {{ tournament.points_to_win }}{% if tournament.win_by_two %}, win by 2{% endif %}</li>
-  </ul>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <ul class="list-unstyled mb-0">
+        <li>Starts: {{ tournament.start_date }}</li>
+        <li>Weeks: {{ tournament.num_weeks }}</li>
+        <li>Courts: {{ tournament.num_courts }}</li>
+        <li>Ranked by: {{ tournament.get_ranking_method_display }}</li>
+        <li>Players enter scores: {% if tournament.players_enter_scores %}Yes{% else %}No{% endif %}</li>
+        <li>Game length: {{ tournament.game_minutes }} minutes</li>
+        <li>Games to {{ tournament.points_to_win }}{% if tournament.win_by_two %}, win by 2{% endif %}</li>
+      </ul>
+    </div>
+  </div>
 
   {% if user_is_admin %}
-    <p>Join code: {{ tournament.join_code }}</p>
-    <p>Join link: {{ join_link }}</p>
-    <p><a href="{% url 'tournaments:add_admin' tournament.id %}">Add an admin</a></p>
-    <p><a href="{% url 'tournaments:new_division' tournament.id %}">Add a division</a></p>
+    <div class="card mb-4 border-success">
+      <div class="card-body">
+        <h2 class="h5">Admin</h2>
+        <p class="mb-1">Join code: <strong>{{ tournament.join_code }}</strong></p>
+        <p>Join link: <code>{{ join_link }}</code></p>
+        <a class="btn btn-primary btn-sm" href="{% url 'tournaments:new_division' tournament.id %}">Add a division</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'tournaments:add_admin' tournament.id %}">Add an admin</a>
+      </div>
+    </div>
   {% endif %}
 
-  <h2>Divisions</h2>
-  <ul>
+  <h2 class="h4">Divisions</h2>
+  <div class="list-group mb-4">
     {% for division in divisions %}
-      <li>
-        <a href="{% url 'tournaments:division' division.id %}">{{ division }}</a>
-        ({{ division.team_set.count }} of {{ division.max_teams }} {% if division.format == 'scramble' %}players{% else %}teams{% endif %})
-      </li>
+      <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+         href="{% url 'tournaments:division' division.id %}">
+        {{ division }}
+        <span class="badge badge-secondary badge-pill">
+          {{ division.team_set.count }} of {{ division.max_teams }} {% if division.format == 'scramble' %}players{% else %}teams{% endif %}
+        </span>
+      </a>
     {% empty %}
-      <li>No divisions yet.</li>
+      <div class="list-group-item">No divisions yet.</div>
     {% endfor %}
-  </ul>
+  </div>
 
-  <h2>Admins</h2>
+  <h2 class="h4">Admins</h2>
   <ul>
     {% for admin in admins %}
       <li>{{ admin.username }}</li>

@@ -1,9 +1,12 @@
 {% extends 'tournaments/base.html' %}
+{% load bootstrap4 %}
 {% block content %}
-  <p>Type the join code you got from the director:</p>
+  <p><a href="{% url 'tournaments:index' %}">Home</a></p>
+  <h1 class="h3">Join with a code</h1>
+  <p>Type the join code you got from the director.</p>
   <form action="{% url 'tournaments:join_with_code' %}" method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button name="submit">Join</button>
+    {% bootstrap_form form %}
+    <button name="submit" class="btn btn-primary">Join</button>
   </form>
 {% endblock content %}

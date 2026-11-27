@@ -1,10 +1,12 @@
 {% extends 'tournaments/base.html' %}
+{% load bootstrap4 %}
 {% block content %}
   <p><a href="{% url 'tournaments:division' division.id %}">{{ division }}</a></p>
+  <h1 class="h3">Raise max teams</h1>
   <p>This division has {{ team_count }} of {{ division.max_teams }} teams.</p>
   <form action="{% url 'tournaments:edit_max_teams' division.id %}" method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button name="submit">Save max teams</button>
+    {% bootstrap_form form %}
+    <button name="submit" class="btn btn-primary">Save max teams</button>
   </form>
 {% endblock content %}

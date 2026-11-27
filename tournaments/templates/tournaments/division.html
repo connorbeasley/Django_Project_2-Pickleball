@@ -1,193 +1,219 @@
 {% extends 'tournaments/base.html' %}
 {% block content %}
-  <h1>{{ division }}</h1>
   <p><a href="{% url 'tournaments:tournament' division.tournament.id %}">{{ division.tournament }}</a></p>
-  <ul>
+  <h1>{{ division }}</h1>
+  <ul class="list-inline text-muted">
     {% if division.format == 'scramble' %}
-      <li>Max players: {{ division.max_teams }}</li>
+      <li class="list-inline-item">Max players: {{ division.max_teams }}</li>
     {% else %}
-      <li>Max teams: {{ division.max_teams }}</li>
-      <li>Games per night: {{ division.games_per_week }}</li>
-      <li>Max meetings per night: {{ division.get_max_meetings_per_night_display }}</li>
+      <li class="list-inline-item">Max teams: {{ division.max_teams }}</li>
+      <li class="list-inline-item">Games per night: {{ division.games_per_week }}</li>
+      <li class="list-inline-item">Max meetings per night: {{ division.get_max_meetings_per_night_display }}</li>
     {% endif %}
-    <li>Game length: {{ division.game_length }} minutes</li>
-    <li>Games to {{ division.target_points }}{% if division.needs_win_by_two %}, win by 2{% endif %}</li>
+    <li class="list-inline-item">Game length: {{ division.game_length }} minutes</li>
+    <li class="list-inline-item">Games to {{ division.target_points }}{% if division.needs_win_by_two %}, win by 2{% endif %}</li>
   </ul>
 
-  {% if division.format == 'scramble' %}
-    <!-- Scramble: each "team" is one player who signed up alone -->
-    <h2>Players</h2>
-    {% if closed %}
-      <p>Registration is closed.</p>
-    {% endif %}
-    {% if user_is_admin %}
-      <p><a href="{% url 'tournaments:new_team' division.id %}">Add a player</a></p>
-    {% elif user_is_member and not closed %}
-      <p><a href="{% url 'tournaments:new_team' division.id %}">Sign up</a></p>
-    {% endif %}
-    <ul>
-      {% for team in teams %}
-        <li>{{ team.name }}</li>
-      {% empty %}
-        <li>No players yet.</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <h2>Teams</h2>
-    {% if closed %}
-      <p>Registration is closed.</p>
-    {% endif %}
-    {% if user_is_admin %}
-      <p><a href="{% url 'tournaments:new_team' division.id %}">Add a team</a></p>
-    {% elif user_is_member and not closed %}
-      <p><a href="{% url 'tournaments:new_team' division.id %}">Create a team</a></p>
-    {% endif %}
-    <ul>
-      {% for team in teams %}
-        <li>
-          {% if team.captain and team.partner %}
-            {{ team.name }}: {{ team.captain.username }} and {{ team.partner.username }}
-          {% elif team.captain %}
-            {{ team.name }}: {{ team.captain.username }} (Looking for a partner)
-            {% if user_is_member and not user_team and not closed %}
-              <form action="{% url 'tournaments:join_team' team.id %}" method="post">
-                {% csrf_token %}
-                <button name="submit">Join as partner</button>
-              </form>
-            {% endif %}
-          {% else %}
-            {{ team.name }} (Added by admin)
-          {% endif %}
-          {% if team.dropped %}
-            (dropped)
-          {% elif user_is_admin %}
-            <a href="{% url 'tournaments:drop_team' team.id %}">Drop</a>
-          {% endif %}
-        </li>
-      {% empty %}
-        <li>No teams yet.</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-
-  <h2>Schedule</h2>
-  {% if user_is_admin %}
-    <form action="{% url 'tournaments:generate_schedule' division.id %}" method="post">
-      {% csrf_token %}
-      <button name="submit">{% if game_rows or scramble_rows %}Rebuild schedule{% else %}Build schedule{% endif %}</button>
-    </form>
-  {% endif %}
-
-  {% if division.format == 'scramble' %}
-    {% if scramble_rows %}
-      {% if user_is_admin %}
-        <form action="{% url 'tournaments:auto_courts' division.id %}" method="post">
-          {% csrf_token %}
-          <button name="submit">Auto-assign courts</button>
-        </form>
+  <!-- Teams (or Players for scramble) -->
+  <section class="mb-5">
+    {% if division.format == 'scramble' %}
+      <!-- Scramble: each "team" is one player who signed up alone -->
+      <h2 class="h4">Players</h2>
+      {% if closed %}
+        <p class="text-muted">Registration is closed.</p>
       {% endif %}
-      <table>
-        <tr>
-          <th>Game #</th><th>Time</th><th>Court</th><th>Side A</th><th>Score</th><th>Side B</th>
-          {% if user.is_authenticated %}<th></th>{% endif %}
-        </tr>
-        {% for game, can_score in scramble_rows %}
-          {% ifchanged game.round_number %}
-            <tr><th colspan="7">Round {{ game.round_number }}</th></tr>
-          {% endifchanged %}
-          <tr>
-            <td>{{ game.game_number }}</td>
-            <td>{% if game.start_time %}{{ game.start_time|time:"g:i A" }}{% else %}TBD{% endif %}</td>
-            <td>{% if game.court %}{{ game.court }}{% else %}TBD{% endif %}</td>
-            <td>{{ game.a1 }} and {{ game.a2 }}</td>
-            <td>{% if game.a_score is not None %}{{ game.a_score }} - {{ game.b_score }}{% else %}-{% endif %}</td>
-            <td>{{ game.b1 }} and {{ game.b2 }}</td>
-            {% if user.is_authenticated %}
-              <td>
-                {% if user_is_admin %}
-                  <a href="{% url 'tournaments:edit_scramble_game' game.id %}">Edit</a>
-                {% endif %}
-                {% if can_score %}
-                  <a href="{% url 'tournaments:enter_scramble_score' game.id %}">
-                    {% if game.a_score is not None %}Edit score{% else %}Enter score{% endif %}
-                  </a>
-                {% endif %}
-              </td>
-            {% endif %}
-          </tr>
+      {% if user_is_admin %}
+        <p><a class="btn btn-primary btn-sm" href="{% url 'tournaments:new_team' division.id %}">Add a player</a></p>
+      {% elif user_is_member and not closed %}
+        <p><a class="btn btn-primary btn-sm" href="{% url 'tournaments:new_team' division.id %}">Sign up</a></p>
+      {% endif %}
+      <ul class="list-group">
+        {% for team in teams %}
+          <li class="list-group-item">{{ team.name }}</li>
+        {% empty %}
+          <li class="list-group-item">No players yet.</li>
         {% endfor %}
-      </table>
+      </ul>
+    {% else %}
+      <h2 class="h4">Teams</h2>
+      {% if closed %}
+        <p class="text-muted">Registration is closed.</p>
+      {% endif %}
+      {% if user_is_admin %}
+        <p><a class="btn btn-primary btn-sm" href="{% url 'tournaments:new_team' division.id %}">Add a team</a></p>
+      {% elif user_is_member and not closed %}
+        <p><a class="btn btn-primary btn-sm" href="{% url 'tournaments:new_team' division.id %}">Create a team</a></p>
+      {% endif %}
+      <ul class="list-group">
+        {% for team in teams %}
+          <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+            <span>
+              {% if team.captain and team.partner %}
+                <strong>{{ team.name }}</strong>: {{ team.captain.username }} and {{ team.partner.username }}
+              {% elif team.captain %}
+                <strong>{{ team.name }}</strong>: {{ team.captain.username }}
+                <small class="text-muted">(Looking for a partner)</small>
+              {% else %}
+                <strong>{{ team.name }}</strong> <small class="text-muted">(Added by admin)</small>
+              {% endif %}
+              {% if team.dropped %}
+                <small class="text-muted">(dropped)</small>
+              {% endif %}
+            </span>
+            <span>
+              {% if team.captain and not team.partner and user_is_member and not user_team and not closed %}
+                <form action="{% url 'tournaments:join_team' team.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button name="submit" class="btn btn-sm btn-outline-primary">Join as partner</button>
+                </form>
+              {% endif %}
+              {% if user_is_admin and not team.dropped %}
+                <a class="btn btn-sm btn-danger" href="{% url 'tournaments:drop_team' team.id %}">Drop</a>
+              {% endif %}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item">No teams yet.</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  <!-- Schedule -->
+  <section class="mb-5">
+    <h2 class="h4">Schedule</h2>
+    {% if user_is_admin %}
+      <div class="mb-2">
+        <form action="{% url 'tournaments:generate_schedule' division.id %}" method="post" class="d-inline">
+          {% csrf_token %}
+          <button name="submit" class="btn btn-primary btn-sm">{% if game_rows or scramble_rows %}Rebuild schedule{% else %}Build schedule{% endif %}</button>
+        </form>
+        {% if game_rows or scramble_rows %}
+          <form action="{% url 'tournaments:auto_courts' division.id %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button name="submit" class="btn btn-outline-secondary btn-sm">Auto-assign courts</button>
+          </form>
+        {% endif %}
+        {% if game_rows and division.format != 'scramble' %}
+          <form action="{% url 'tournaments:copy_week_one' division.id %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button name="submit" class="btn btn-outline-secondary btn-sm">Copy week 1 to all weeks</button>
+          </form>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'tournaments:auto_times' division.id %}">Auto-fill times</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if division.format == 'scramble' %}
+      {% if scramble_rows %}
+        <!-- table-responsive lets the table scroll sideways on a phone -->
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <tr>
+              <th>Game #</th><th>Time</th><th>Court</th><th>Side A</th><th>Score</th><th>Side B</th>
+              {% if user.is_authenticated %}<th></th>{% endif %}
+            </tr>
+            {% for game, can_score in scramble_rows %}
+              {% ifchanged game.round_number %}
+                <tr class="table-secondary"><th colspan="7">Round {{ game.round_number }}</th></tr>
+              {% endifchanged %}
+              <tr>
+                <td>{{ game.game_number }}</td>
+                <td>{% if game.start_time %}{{ game.start_time|time:"g:i A" }}{% else %}TBD{% endif %}</td>
+                <td>{% if game.court %}{{ game.court }}{% else %}TBD{% endif %}</td>
+                <td>{{ game.a1 }} and {{ game.a2 }}</td>
+                <td>{% if game.a_score is not None %}{{ game.a_score }} - {{ game.b_score }}{% else %}-{% endif %}</td>
+                <td>{{ game.b1 }} and {{ game.b2 }}</td>
+                {% if user.is_authenticated %}
+                  <td class="text-nowrap">
+                    {% if user_is_admin %}
+                      <a class="btn btn-sm btn-outline-secondary" href="{% url 'tournaments:edit_scramble_game' game.id %}">Edit</a>
+                    {% endif %}
+                    {% if can_score %}
+                      <a class="btn btn-sm btn-outline-primary" href="{% url 'tournaments:enter_scramble_score' game.id %}">
+                        {% if game.a_score is not None %}Edit score{% else %}Enter score{% endif %}
+                      </a>
+                    {% endif %}
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </table>
+        </div>
+      {% else %}
+        <p>No schedule yet.</p>
+      {% endif %}
+    {% elif game_rows %}
+      <!-- table-responsive lets the table scroll sideways on a phone -->
+      <div class="table-responsive">
+        <table class="table table-sm table-striped">
+          <tr>
+            <th>Game #</th><th>Time</th><th>Court</th><th>Team 1</th><th>Score</th><th>Team 2</th>
+            {% if user.is_authenticated %}<th></th>{% endif %}
+          </tr>
+          {% for game, can_score in game_rows %}
+            {% ifchanged game.week %}
+              <tr class="table-secondary"><th colspan="7">Week {{ game.week }}</th></tr>
+            {% endifchanged %}
+            <tr>
+              <td>{{ game.game_number }}</td>
+              <!-- g:i A prints times like 6:00 PM -->
+              <td>{% if game.start_time %}{{ game.start_time|time:"g:i A" }}{% else %}TBD{% endif %}</td>
+              <td>{% if game.court %}{{ game.court }}{% else %}TBD{% endif %}</td>
+              <td>{{ game.team1 }}</td>
+              <td class="text-nowrap">
+                {% if game.team1_score is not None %}
+                  {{ game.team1_score }} - {{ game.team2_score }}
+                  {% if game.forfeit %}<small class="text-muted">(forfeit)</small>{% endif %}
+                {% else %}-{% endif %}
+              </td>
+              <td>{{ game.team2 }}</td>
+              {% if user.is_authenticated %}
+                <td class="text-nowrap">
+                  {% if user_is_admin %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'tournaments:edit_game' game.id %}">Edit</a>
+                  {% endif %}
+                  {% if can_score %}
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'tournaments:enter_score' game.id %}">
+                      {% if game.team1_score is not None %}Edit score{% else %}Enter score{% endif %}
+                    </a>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </table>
+      </div>
     {% else %}
       <p>No schedule yet.</p>
     {% endif %}
-  {% elif game_rows %}
-    {% if user_is_admin %}
-      <form action="{% url 'tournaments:auto_courts' division.id %}" method="post">
-        {% csrf_token %}
-        <button name="submit">Auto-assign courts</button>
-      </form>
-      <form action="{% url 'tournaments:copy_week_one' division.id %}" method="post">
-        {% csrf_token %}
-        <button name="submit">Copy week 1 to all weeks</button>
-      </form>
-      <p><a href="{% url 'tournaments:auto_times' division.id %}">Auto-fill times</a></p>
-    {% endif %}
-    <table>
-      <tr>
-        <th>Game #</th><th>Time</th><th>Court</th><th>Team 1</th><th>Score</th><th>Team 2</th>
-        {% if user.is_authenticated %}<th></th>{% endif %}
-      </tr>
-      {% for game, can_score in game_rows %}
-        {% ifchanged game.week %}
-          <tr><th colspan="7">Week {{ game.week }}</th></tr>
-        {% endifchanged %}
-        <tr>
-          <td>{{ game.game_number }}</td>
-          <!-- g:i A prints times like 6:00 PM -->
-          <td>{% if game.start_time %}{{ game.start_time|time:"g:i A" }}{% else %}TBD{% endif %}</td>
-          <td>{% if game.court %}{{ game.court }}{% else %}TBD{% endif %}</td>
-          <td>{{ game.team1 }}</td>
-          <td>{% if game.team1_score is not None %}{{ game.team1_score }} - {{ game.team2_score }}{% if game.forfeit %} (forfeit){% endif %}{% else %}-{% endif %}</td>
-          <td>{{ game.team2 }}</td>
-          {% if user.is_authenticated %}
-            <td>
-              {% if user_is_admin %}
-                <a href="{% url 'tournaments:edit_game' game.id %}">Edit</a>
-              {% endif %}
-              {% if can_score %}
-                <a href="{% url 'tournaments:enter_score' game.id %}">
-                  {% if game.team1_score is not None %}Edit score{% else %}Enter score{% endif %}
-                </a>
-              {% endif %}
-            </td>
-          {% endif %}
-        </tr>
-      {% endfor %}
-    </table>
-  {% else %}
-    <p>No schedule yet.</p>
-  {% endif %}
+  </section>
 
-  <h2>Standings</h2>
-  <p>Ranked by {{ division.tournament.get_ranking_method_display|lower }}</p>
-  <table>
-    <tr>
-      <th>Seed</th><th>{% if division.format == 'scramble' %}Player{% else %}Team{% endif %}</th>
-      <th>Played</th><th>W</th><th>L</th><th>Points</th><th>+/-</th>
-    </tr>
-    {% for row in standings_rows %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ row.team.name }}{% if row.team.dropped %} (dropped){% endif %}</td>
-        <td>{{ row.played }}</td>
-        <td>{{ row.wins }}</td>
-        <td>{{ row.losses }}</td>
-        <td>{{ row.points }}</td>
-        <!-- Show a + in front of positive numbers, like +6 -->
-        <td>{% if row.diff > 0 %}+{% endif %}{{ row.diff }}</td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="7">No teams yet.</td></tr>
-    {% endfor %}
-  </table>
+  <!-- Standings -->
+  <section class="mb-5">
+    <h2 class="h4">Standings</h2>
+    <p class="text-muted">Ranked by {{ division.tournament.get_ranking_method_display|lower }}</p>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped">
+        <tr>
+          <th>Seed</th><th>{% if division.format == 'scramble' %}Player{% else %}Team{% endif %}</th>
+          <th>Played</th><th>W</th><th>L</th><th>Points</th><th>+/-</th>
+        </tr>
+        {% for row in standings_rows %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.team.name }}{% if row.team.dropped %} <small class="text-muted">(dropped)</small>{% endif %}</td>
+            <td>{{ row.played }}</td>
+            <td>{{ row.wins }}</td>
+            <td>{{ row.losses }}</td>
+            <td>{{ row.points }}</td>
+            <!-- Show a + in front of positive numbers, like +6 -->
+            <td>{% if row.diff > 0 %}+{% endif %}{{ row.diff }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">No teams yet.</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
 {% endblock content %}

@@ -12,7 +12,7 @@
 
     <!--If the form’s errors attribute is set, we display an error message-->
     {% if form.errors %}
-    <p>Your username and password didn't match. Please try again.</p>
+    <div class="alert alert-danger">Your username and password didn't match. Please try again.</div>
     {% endif %}
 
     <!--set the action argument as the URL of the login page-->

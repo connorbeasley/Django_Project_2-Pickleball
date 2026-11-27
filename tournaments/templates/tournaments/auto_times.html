@@ -1,12 +1,14 @@
 {% extends 'tournaments/base.html' %}
+{% load bootstrap4 %}
 {% block content %}
   <p><a href="{% url 'tournaments:division' division.id %}">{{ division }}</a></p>
+  <h1 class="h3">Auto-fill times</h1>
   <p>Fill in a court and time for every game in every week. Games start in waves, one game per court,
      spaced by the game length ({{ division.game_length }} minutes).
      This replaces any times and courts already set. You can still edit single games after.</p>
   <form action="{% url 'tournaments:auto_times' division.id %}" method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button name="submit">Fill in times</button>
+    {% bootstrap_form form %}
+    <button name="submit" class="btn btn-primary">Fill in times</button>
   </form>
 {% endblock content %}
